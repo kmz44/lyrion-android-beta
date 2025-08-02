@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>    <!-- App name -->
+    <string name="app_name">Lyrion IA</string>
+      <!-- Main UI strings -->
+    <string name="popular_models">Modelos Populares</string>
+    <string name="select_gguf_file_description">Selecciona un archivo GGUF desde el explorador de archivos</string>
+    <string name="select_gguf_file">Seleccionar archivo GGUF</string>
+    
+    <!-- Chat UI strings -->
+    <string name="choose_model">Elegir Modelo</string>
+    <string name="choose_model_description">Selecciona un modelo descargado de abajo para usar como modelo \'predeterminado\' para este chat. Podrás cambiarlo más tarde haciendo clic en ⫶ en la barra de la aplicación.</string>
+    <string name="add_model">Agregar modelo</string>
+    <string name="delete_model">Eliminar Modelo</string>
+    <string name="delete_model_confirmation">¿Estás seguro de que quieres eliminar el modelo \'%s\'?</string>
+    <string name="delete">Eliminar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="model_deleted">Modelo \'%s\' eliminado</string>
+      <!-- Task management strings -->
+    <string name="edit_task">Editar Tarea</string>
+    <string name="delete_task">Eliminar Tarea</string>
+
+    <string name="tasks">Tareas</string>
+    <string name="add_task">Agregar Tarea</string>
+    <string name="task_name">Nombre de la Tarea</string>
+    <string name="task_prompt">Prompt de la Tarea</string>
+    <string name="save_task">Guardar Tarea</string>
+    <string name="task_saved">Tarea guardada</string>
+    <string name="task_deleted">Tarea \'%s\' eliminada</string>
+    <string name="tasks_description">Las tareas son plantillas de chat con un prompt del sistema y modelo definidos. Úsalas para realizar acciones rápidas con el modelo SLM seleccionado.</string>
+    <string name="delete_task_confirmation">¿Estás seguro de que quieres eliminar la tarea \'%s\'?</string>
+    <string name="create_task">Crear Tarea</string>
+    <string name="select_model">Seleccionar Modelo</string>
+    <string name="update">Actualizar</string>
+    <string name="add">Agregar</string>    <!-- Chat messages -->
+    <string name="message_copied">Mensaje copiado</string>
+    <string name="type_message">Escribe un mensaje...</string>
+    <string name="send">Enviar</string>
+    <string name="generating_response">🤖 Lyrion está escribiendo...</string>
+    <string name="thinking">🧠 Lyrion está pensando...</string>
+    <string name="orabel_processing">💭 Lyrion IA</string>
+    <string name="orabel_typing">✍️ Escribiendo...</string>
+      <!-- Nuevos Strings Atractivos para Adolescentes -->
+    <string name="continue_with_existing_model">🚀 Continuar con modelo actual</string>
+    <string name="continue_existing_desc">Ir directo al chat con tu modelo IA configurado</string>
+      <!-- Opción de Más Información -->
+    <string name="more_info">📚 Más Información</string>
+    <string name="more_info_desc">Aprende más sobre IA y tecnología</string>
+    <string name="no_internet_connection">❌ Sin conexión a internet</string>
+    <string name="internet_required">Esta opción requiere conexión a internet</string>    <string name="loading_website">⏳ Cargando sitio web...</string>    <string name="website_error">❌ Error al cargar el sitio web</string>    <string name="check_connection">Por favor verifica tu conexión a internet</string>
+    
+    <string name="setup_your_ai">🎯 Configura Tu IA</string>
+    
+    <!-- Mensajes de Estado con Emojis -->    <string name="status_connecting">🔗 Conectando con Lyrion...</string>
+    <string name="status_loading_model">⚡ Cargando cerebro IA...</string>
+    <string name="status_model_ready">✅ ¡La IA está lista!</string>
+    <string name="status_error">❌ ¡Oops! Algo salió mal</string>
+    
+    <!-- Botones de Acción -->
+    <string name="try_again">Intentar Otra Vez 🔄</string>
+    <string name="explore_more">Explorar Más ✨</string>
+    <string name="customize">Personalizar 🎨</string>
+    
+    <!-- Model management -->
+    <string name="copying_model_file">Copiando archivo del modelo...</string>
+    <string name="model_copy_description">%s\n(El modelo necesita ser copiado al directorio interno de la aplicación para su uso)</string>
+    <string name="invalid_file">Archivo inválido</string>
+    <string name="model_download_description">El modelo GGUF será descargado en tu dispositivo para usar con Lyrion IA.</string>
+    
+    <!-- Navigation and menu -->
+    <string name="chats">Chats</string>
+    <string name="new_chat">Nuevo Chat</string>
+    <string name="settings">Configuraciones</string>
+    <string name="about">Acerca de</string>
+    
+    <!-- Model parameters -->
+    <string name="temperature">Temperatura</string>
+    <string name="min_p">Min-P</string>
+    <string name="system_prompt">Prompt del Sistema</string>
+    <string name="model_parameters">Parámetros del Modelo</string>
+    
+    <!-- Error messages -->
+    <string name="error_loading_model">Error al cargar el modelo</string>
+    <string name="error_generating_response">Error al generar respuesta</string>
+    <string name="error_invalid_model">Modelo inválido seleccionado</string>
+    <string name="error_no_models">No hay modelos disponibles</string>
+    
+    <!-- Progress and status -->
+    <string name="loading">Cargando...</string>
+    <string name="downloading">Descargando...</string>
+    <string name="processing">Procesando...</string>
+    <string name="complete">Completo</string>
+    
+    <!-- File operations -->
+    <string name="file_not_found">Archivo no encontrado</string>
+    <string name="file_too_large">Archivo demasiado grande</string>
+    <string name="insufficient_storage">Almacenamiento insuficiente</string>
+      <!-- Common actions -->
+    <string name="ok">OK</string>
+    <string name="yes">Sí</string>
+    <string name="no">No</string>
+    <string name="retry">Reintentar</string>
+    <string name="close">Cerrar</string>
+    <string name="save">Guardar</string>
+    <string name="edit">Editar</string>
+    <string name="share">Compartir</string>
+    <string name="copy">Copiar</string>
+    
+    <!-- Content descriptions -->
+    <string name="add_model_desc">Agregar modelo</string>
+    <string name="delete_model_desc">Eliminar Modelo</string>
+    <string name="edit_task_desc">Editar Tarea</string>
+    <string name="delete_task_desc">Eliminar Tarea</string>
+    <string name="send_message_desc">Enviar mensaje</string>
+    <string name="menu_desc">Menú</string>
+    <string name="back_desc">Atrás</string>
+    <string name="more_options_desc">Más Opciones</string>
+    <string name="view_chats_desc">Ver Chats</string>
+    <string name="options_desc">Opciones</string>
+    <string name="stop_desc">Detener</string>
+    <string name="send_text_desc">Enviar texto</string>
+    <string name="new_chat_desc">Nuevo Chat</string>
+
+
+    <string name="edit_chat_name_desc">Editar Nombre del Chat</string>
+    <string name="change_model_desc">Cambiar Modelo</string>
+    <string name="delete_chat_desc">Eliminar Chat</string>
+    <string name="navigate_back_desc">Navegar Atrás</string>
+    <string name="save_settings_desc">Guardar configuración</string>
+    
+    <!-- New strings for remaining hardcoded text -->
+    <string name="select_a_chat">Seleccionar un chat</string>
+    <string name="select_a_model">Seleccionar un modelo ...</string>
+    <string name="loading_model">⚡ Cargando tu modelo IA...</string>
+    <string name="ask_a_question">Hacer una pregunta</string>
+    <string name="no_tasks_created">No se han creado tareas</string>
+    <string name="create_a_task">Crear una tarea</string>
+    <string name="select_a_task">Seleccionar Una Tarea</string>
+    <string name="edit_chat_settings">Editar Configuración del Chat</string>
+    <string name="chat_name">Nombre del Chat</string>
+    <string name="updates_task_notice">Las actualizaciones del nombre y el mensaje del sistema solo se reflejarán en el chat y no en la tarea.</string>
+    <string name="min_p_description">minP es una técnica de muestreo que limita las opciones de vocabulario durante la inferencia del LLM, asegurando que solo se consideren tokens con probabilidades que excedan el umbral minP, lo que lleva a salidas más enfocadas y menos aleatorias.</string>
+    <string name="temperature_description">La temperatura es un parámetro que controla la aleatoriedad y creatividad de las salidas del LLM, con temperaturas más bajas produciendo respuestas más determinísticas y enfocadas, y temperaturas más altas llevando a salidas más diversas y creativas.</string>
+    <string name="untitled">Sin título</string>
+    <string name="you_are_helpful_assistant">Eres un asistente útil.</string>
+    <string name="previous_chats">Chats Anteriores</string>
+    <string name="edit_chat_settings_menu">⚙️ Configuración</string>
+    <string name="change_model_menu">🔄 Cambiar Modelo</string>
+    <string name="back_to_main_menu_desc">Volver al menú principal</string>
+    <string name="back_to_main_menu">🏠 Menú Principal</string>
+    <string name="model_changed_success">🎉 ¡Modelo cambiado exitosamente!</string>
+    <string name="delete_chat_menu">🗑️ Eliminar Chat</string>
+    <string name="delete_chat_confirmation">¿Estás seguro de que quieres eliminar el chat \'%s\'?</string>
+    <string name="chat_deleted">Chat \'%s\' eliminado</string>
+    
+    <!-- Welcome screen strings -->
+    <string name="welcome_subtitle">🎉 ¡Tu compañero IA para todo! ✨</string>
+    <string name="welcome_footer">Hecho con 💜 para adolescentes que aman la IA</string>
+    
+    <!-- Mode selection strings -->
+    <string name="mode_local_title">Modo Local 💻</string>
+    <string name="mode_local_description">Ejecuta modelos IA directamente en tu dispositivo. ¡Privado y seguro! 🔐</string>
+    <string name="mode_pronto_title">Modo Pronto ☁️</string>
+    <string name="mode_pronto_description">Conecta a IA en la nube para respuestas más rápidas. ¡Próximamente! 🚀</string>
+      <!-- Status and loading messages -->
+    <string name="model_ready">✅ ¡Modelo listo para chatear!</string>
+    <string name="connection_error">📡 ¡Ups! Problema de conexión. ¿Intentar de nuevo?</string>
+    
+    <!-- Model setup strings -->
+    <string name="model_setup_subtitle">🤖 ¡Configuremos tu modelo IA para empezar!</string>
+    <string name="step_choose_model">Elige Tu Modelo</string>
+    <string name="step_choose_model_desc">Selecciona de modelos populares o sube el tuyo</string>
+    <string name="step_download_model">Descargar e Instalar</string>
+    <string name="step_download_model_desc">Descargaremos y configuraremos tu modelo IA</string>
+    <string name="step_ready_chat">¡Listo para Chatear!</string>
+    <string name="step_ready_chat_desc">Tu compañero IA está listo para conversaciones</string>
+    <string name="get_started">🚀 Comenzar</string>
+    <string name="go_back">← Volver</string>
+    <string name="setup_model_title">🎯 ¡Configuremos tu IA!</string>
+    <string name="setup_model_subtitle">Elige cómo quieres empezar con Lyrion IA</string>
+    <string name="option_download_popular">Descargar Modelo Popular 📥</string>
+    <string name="option_download_description">Obtén un modelo IA recomendado que funciona genial para la mayoría de tareas</string>
+    <string name="option_select_file">Seleccionar Archivo Local 📁</string>
+    <string name="option_select_description">Elige un archivo de modelo IA que ya tienes en tu dispositivo</string>
+    <string name="setup_footer">🔒 Tus datos se mantienen privados y seguros en tu dispositivo</string>    <string name="setting_up_model">⚙️ Configurando tu modelo IA...</string>
+    
+    <!-- Welcome screen strings -->
+    <string name="welcome_to_orabel">Bienvenido a Lyrion IA</string>
+    <string name="your_ai_companion">Tu Compañero IA</string>    <string name="choose_your_mode">Elige Tu Modo</string>
+    <string name="local_mode">Modo Local</string>
+    <string name="local_mode_desc">Ejecuta modelos IA directamente en tu dispositivo para privacidad completa</string>
+    <string name="cloud_mode">Modo Nube</string>
+    <string name="cloud_mode_desc">Conéctate a servicios IA en la nube para capacidades mejoradas</string>
+    <string name="lets_go">¡Vamos!</string>
+    
+    <!-- Próximamente -->
+    <string name="coming_soon">Próximamente</string>
+    <string name="cloud_mode_coming_soon">¡El modo nube llegará pronto! 🚀</string>
+    
+    <!-- About Lyrion content -->
+    <string name="about_lyrion_content">🤖 Lyrion es tu asistente personal de IA impulsado por modelos de lenguaje avanzados. 
+
+🎯 **¿Qué es Lyrion?**
+Lyrion es una aplicación de inteligencia artificial que te permite chatear con modelos de lenguaje potentes directamente en tu dispositivo. Sin necesidad de conexión a internet una vez configurado.
+
+🔐 **Privacidad y Seguridad**
+• Tus conversaciones se mantienen completamente privadas
+• Los modelos se ejecutan localmente en tu dispositivo
+• Sin envío de datos a servidores externos
+• Control total sobre tu información personal
+
+⚡ **Características Principales**
+• Chat inteligente con IA avanzada
+• Modelos de lenguaje de última generación
+• Respuestas rápidas y precisas
+• Interfaz moderna y fácil de usar
+• Personalización de parámetros del modelo
+
+🚀 **Para Adolescentes y Jóvenes**
+Lyrion está diseñado especialmente para la nueva generación que ama la tecnología. Aprende, explora y diviértete con la IA de forma segura y privada.
+
+💜 **Hecho con Amor**
+Desarrollado con pasión para democratizar el acceso a la inteligencia artificial y hacer que la tecnología sea accesible para todos.
+
+¡Disfruta explorando el futuro de la IA con Lyrion! 🌟</string>
+</resources>

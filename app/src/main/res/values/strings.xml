@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App name -->
+    <string name="app_name">Lyrion IA</string>
+    
+    <!-- Main UI strings -->
+    <string name="popular_models">Popular Models</string>
+    <string name="select_gguf_file_description">Select a GGUF file from the file explorer</string>
+    <string name="select_gguf_file">Select GGUF file</string>
+    
+    <!-- Menu options -->
+    <string name="edit_chat_settings_menu">⚙️ Configuración</string>
+    <string name="change_model_menu">🔄 Cambiar Modelo</string>
+    <string name="back_to_main_menu_desc">Back to main menu</string>
+    <string name="back_to_main_menu">🏠 Menú Principal</string>
+    <string name="model_changed_success">🎉 Model changed successfully!</string>
+    <string name="delete_chat_menu">🗑️ Eliminar Chat</string>
+    
+    <!-- Chat UI strings -->
+    <string name="choose_model">Choose Model</string>
+    <string name="choose_model_description">Select a downloaded model from below to use as a default model for this chat. You will be able to change it later by clicking ⫶ on the app bar.</string>
+    <string name="add_model">Add model</string>
+    <string name="delete_model">Delete Model</string>
+    <string name="delete_model_confirmation">Are you sure you want to delete model %s?</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="model_deleted">Model %s deleted</string>
+    
+    <!-- First Setup strings -->
+    <string name="first_setup_download_error">Download error</string>
+    <string name="first_setup_welcome_title">Welcome to Lyrion</string>
+    <string name="first_setup_welcome_description">Your personal AI assistant</string>
+    <string name="first_setup_terms_title">Terms and Conditions</string>
+    <string name="first_setup_terms_decline">Decline</string>
+    <string name="first_setup_terms_accept">Accept</string>
+    <string name="first_setup_downloading">Downloading...</string>
+    <string name="first_setup_download_complete">Download complete</string>
+    <string name="first_setup_download_description">Setting up your AI model</string>
+    <string name="first_setup_ready">Ready to start</string>
+    <string name="first_setup_progress_format">%d%% complete</string>
+    <string name="first_setup_model_name">Model: %s</string>
+    <string name="first_setup_download_starting">Starting download...</string>
+    
+    <!-- Model Setup strings -->
+    <string name="copying_model_file">Copying model file...</string>
+    <string name="model_copy_description">Please wait while we prepare your model</string>
+    <string name="invalid_file">Invalid file selected</string>
+    
+    <!-- Task management strings -->
+    <string name="edit_task">Edit Task</string>
+    <string name="delete_task">Delete Task</string>
+    <string name="tasks">Tasks</string>
+    <string name="add_task">Add Task</string>
+    <string name="create_task">Create Task</string>
+    <string name="task_name">Task Name</string>
+    <string name="task_prompt">Task Prompt</string>
+    <string name="save_task">Save Task</string>
+    <string name="task_saved">Task saved</string>
+    <string name="task_deleted">Task %s deleted</string>
+    <string name="tasks_description">Tasks are chat templates with a system prompt and model defined. Use them to perform quick actions with the selected SLM model.</string>
+    <string name="delete_task_confirmation">Are you sure you want to delete task %s?</string>
+    <string name="select_model">Select Model</string>
+    <string name="update">Update</string>
+    <string name="add">Add</string>
+    
+    <!-- Chat messages -->
+    <string name="message_copied">Message copied</string>
+    <string name="type_message">Type a message...</string>
+    <string name="send">Send</string>
+    <string name="generating_response">🤖 Lyrion is writing...</string>
+    <string name="thinking">🧠 Lyrion is thinking...</string>
+    <string name="orabel_processing">💭 Lyrion</string>
+    <string name="orabel_typing">✍️ Typing...</string>
+    
+    <!-- New Teen-Friendly UI Strings -->
+    <string name="continue_with_existing_model">🚀 Continue with current model</string>
+    <string name="continue_existing_desc">Go directly to chat with your configured AI model</string>
+    
+    <!-- More Information Option -->
+    <string name="more_info">📚 More Information</string>
+    <string name="more_info_desc">Learn more about AI and technology</string>
+    <string name="no_internet_connection">❌ No internet connection</string>
+    <string name="internet_required">This option requires an internet connection</string>
+    <string name="loading_website">⏳ Loading website...</string>
+    <string name="website_error">❌ Error loading website</string>
+    <string name="check_connection">Please check your internet connection</string>
+    
+    <!-- Welcome screen strings -->
+    <string name="welcome_subtitle">🎉 Your AI companion for everything! ✨</string>
+    <string name="welcome_footer">Made with 💜 for teens who love AI</string>
+    
+    <!-- Mode selection strings -->
+    <string name="mode_local_title">Local Mode 💻</string>
+    <string name="mode_local_description">Run AI models directly on your device. Private and secure! 🔐</string>
+    <string name="mode_pronto_title">Pronto Mode ☁️</string>
+    <string name="mode_pronto_description">Connect to cloud AI for faster responses. Coming soon! 🚀</string>
+    
+    <!-- Status and loading messages -->
+    <string name="loading_model">⚡ Loading your AI model...</string>
+    <string name="model_ready">✅ Model ready to chat!</string>
+    <string name="connection_error">📡 Oops! Connection hiccup. Try again?</string>
+    
+    <!-- Navigation strings -->
+    <string name="home">Home</string>
+    <string name="chats">Chats</string>
+    <string name="new_chat">New Chat</string>
+    <string name="settings">Settings</string>
+    <string name="about">About</string>
+    
+    <!-- Model parameters -->
+    <string name="temperature">Temperature</string>
+    <string name="min_p">Min-P</string>
+    <string name="system_prompt">System Prompt</string>
+    <string name="model_parameters">Model Parameters</string>
+    
+    <!-- Error messages -->
+    <string name="error_loading_model">Error loading model</string>
+    <string name="error_generating_response">Error generating response</string>
+    <string name="error_invalid_model">Invalid model selected</string>
+    <string name="error_no_models">No models available</string>
+    
+    <!-- Progress and status -->
+    <string name="loading">Loading...</string>
+    <string name="downloading">Downloading...</string>
+    <string name="processing">Processing...</string>
+    <string name="complete">Complete</string>
+    
+    <!-- File operations -->
+    <string name="file_not_found">File not found</string>
+    <string name="file_too_large">File too large</string>
+    <string name="insufficient_storage">Insufficient storage</string>
+    
+    <!-- Common actions -->
+    <string name="ok">OK</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="retry">Retry</string>
+    <string name="close">Close</string>
+    <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="share">Share</string>
+    <string name="copy">Copy</string>
+    
+    <!-- Content descriptions -->
+    <string name="add_model_desc">Add model</string>
+    <string name="delete_model_desc">Delete Model</string>
+    <string name="edit_task_desc">Edit Task</string>
+    <string name="delete_task_desc">Delete Task</string>
+    <string name="send_message_desc">Send message</string>
+    <string name="menu_desc">Menu</string>
+    <string name="back_desc">Back</string>
+    <string name="more_options_desc">More Options</string>
+    <string name="view_chats_desc">View Chats</string>
+    <string name="options_desc">Options</string>
+    <string name="stop_desc">Stop</string>
+    <string name="send_text_desc">Send text</string>
+    <string name="new_chat_desc">New Chat</string>
+    <string name="edit_chat_name_desc">Edit Chat Name</string>
+    <string name="change_model_desc">Change Model</string>
+    <string name="delete_chat_desc">Delete Chat</string>
+    <string name="navigate_back_desc">Navigate Back</string>
+    <string name="save_settings_desc">Save settings</string>
+    
+    <!-- New strings for remaining hardcoded text -->
+    <string name="select_a_chat">Select a chat</string>
+    <string name="select_a_model">Select a model ...</string>
+    <string name="ask_a_question">Ask a question</string>
+    <string name="no_tasks_created">No tasks created</string>
+    <string name="create_a_task">Create a task</string>
+    <string name="select_a_task">Select A Task</string>
+    <string name="edit_chat_settings">Edit Chat Settings</string>
+    <string name="chat_name">Chat Name</string>
+    <string name="updates_task_notice">Updates to the name and system prompt will only be reflected in the chat and not in the task.</string>
+    <string name="min_p_description">minP is a sampling technique that limits the vocabulary choices during LLM inference, ensuring that only tokens with probabilities exceeding the minP threshold are considered, leading to more focused and less random outputs.</string>
+    <string name="temperature_description">Temperature is a parameter that controls the randomness and creativity of LLM outputs, with lower temperatures producing more deterministic and focused responses, and higher temperatures leading to more diverse and creative outputs.</string>
+    <string name="untitled">Untitled</string>
+    <string name="you_are_helpful_assistant">You are a helpful assistant.</string>
+    <string name="previous_chats">Previous Chats</string>
+    <string name="delete_chat_confirmation">Are you sure you want to delete chat %s?</string>
+    <string name="chat_deleted">Chat %s deleted</string>
+    
+    <!-- Model setup strings -->
+    <string name="model_setup_subtitle">🤖 Let us set up your AI model to get started!</string>
+    <string name="step_choose_model">Choose Your Model</string>
+    <string name="step_choose_model_desc">Pick from popular AI models or upload your own</string>
+    <string name="step_download_model">Download &amp; Install</string>
+    <string name="step_download_model_desc">We will download and set up your AI model</string>
+    <string name="step_ready_chat">Ready to Chat!</string>
+    <string name="step_ready_chat_desc">Your AI companion is ready for conversations</string>
+    <string name="get_started">🚀 Get Started</string>
+    <string name="go_back">← Go Back</string>
+    <string name="setup_model_title">🎯 Let\'s setup your AI!</string>
+    <string name="setup_model_subtitle">Choose how you want to get started with Lyrion AI</string>
+    <string name="option_download_popular">Download Popular Model 📥</string>
+    <string name="option_browse_files">Browse for Model File 📁</string>
+    <string name="option_continue_existing">Continue with Existing 🚀</string>
+    <string name="option_download_desc">We\'ll help you download a great model to get started</string>
+    <string name="option_browse_desc">Select a .gguf model file you already have</string>
+    <string name="option_continue_desc">Use your current model setup and jump right into chat</string>
+    <string name="choose_your_mode">Choose Your Mode</string>
+    <string name="local_mode">🏠 Local Mode</string>
+    <string name="local_mode_desc">Run AI on your device - private &amp; secure</string>
+    <string name="cloud_mode">☁️ Cloud Mode</string>
+    <string name="cloud_mode_desc">Connect to powerful AI in the cloud</string>
+    <string name="lets_go">Let\'s Go! 🚀</string>
+    <string name="setup_your_ai">🎯 Setup Your AI</string>
+    <string name="setup_ai_desc">Choose how to configure your AI experience</string>
+    <string name="welcome_to_orabel">Welcome to Lyrion! 🎉</string>
+    <string name="your_ai_companion">Your smart AI companion for everything</string>
+    
+    <!-- Welcome Activity strings -->
+    <string name="cloud_mode_coming_soon">Cloud mode coming soon</string>
+    <string name="coming_soon">Coming Soon</string>
+    <string name="login_coming_soon">Login feature coming soon</string>
+    <string name="about_lyrion_content">Lyrion is your personal AI assistant powered by advanced language models. Chat, learn, and explore with AI in a private &amp; secure environment.</string>
+</resources>

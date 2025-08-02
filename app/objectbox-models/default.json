@@ -1,0 +1,159 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:7189463927366363857",
+      "lastPropertyId": "9:23752982720053390",
+      "name": "Chat",
+      "properties": [
+        {
+          "id": "1:7391880913925750988",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:7843644517300847434",
+          "name": "name",
+          "type": 9
+        },
+        {
+          "id": "3:4204636343204262946",
+          "name": "systemPrompt",
+          "type": 9
+        },
+        {
+          "id": "4:1003912769998628106",
+          "name": "dateCreated",
+          "type": 10
+        },
+        {
+          "id": "5:3637679214303931514",
+          "name": "dateUsed",
+          "type": 10
+        },
+        {
+          "id": "6:6268094525441042788",
+          "name": "llmModelId",
+          "type": 6
+        },
+        {
+          "id": "7:7605718361184974082",
+          "name": "minP",
+          "type": 7
+        },
+        {
+          "id": "8:2529303885977352296",
+          "name": "temperature",
+          "type": 7
+        },
+        {
+          "id": "9:23752982720053390",
+          "name": "isTask",
+          "type": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "2:1291864881599052447",
+      "lastPropertyId": "4:534146417128225942",
+      "name": "ChatMessage",
+      "properties": [
+        {
+          "id": "1:3043557973027682772",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3728483052292187582",
+          "name": "chatId",
+          "type": 6
+        },
+        {
+          "id": "3:6675923023199727552",
+          "name": "message",
+          "type": 9
+        },
+        {
+          "id": "4:534146417128225942",
+          "name": "isUserMessage",
+          "type": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "3:248145244969688012",
+      "lastPropertyId": "4:1803197220601426819",
+      "name": "LLMModel",
+      "properties": [
+        {
+          "id": "1:5124549760000881208",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:1191128067219152493",
+          "name": "name",
+          "type": 9
+        },
+        {
+          "id": "3:5111560562823472241",
+          "name": "url",
+          "type": 9
+        },
+        {
+          "id": "4:1803197220601426819",
+          "name": "path",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "4:4212948268343015666",
+      "lastPropertyId": "4:5286914439198968062",
+      "name": "Task",
+      "properties": [
+        {
+          "id": "1:679136690871466997",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3163926424708753970",
+          "name": "name",
+          "type": 9
+        },
+        {
+          "id": "3:7129625057396686318",
+          "name": "systemPrompt",
+          "type": 9
+        },
+        {
+          "id": "4:5286914439198968062",
+          "name": "modelId",
+          "type": 6
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "4:4212948268343015666",
+  "lastIndexId": "0:0",
+  "lastRelationId": "0:0",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}

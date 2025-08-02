@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_primary"
+    android:fitsSystemWindows="true">
+
+    <!-- Background Gradient Effect -->
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@drawable/gradient_button"
+        android:alpha="0.1"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent" />
+
+    <!-- Main Content -->
+    <ScrollView
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:fillViewport="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:gravity="center"
+            android:layout_gravity="center">
+
+            <!-- Spacer for top padding -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="60dp" />
+
+            <!-- Logo Placeholder (will be replaced with orabel.png) -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:layout_marginBottom="32dp"
+                app:cardCornerRadius="60dp"
+                app:cardElevation="12dp"
+                app:cardBackgroundColor="@color/orabel_primary"
+                android:animationCache="true">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="💭"
+                    android:textSize="48sp"
+                    android:gravity="center"
+                    android:background="@drawable/gradient_button" />
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- Welcome Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/welcome_to_orabel"
+                style="@style/OrabelTextTitle"
+                android:gravity="center"
+                android:layout_marginBottom="16dp"
+                android:textSize="32sp" />
+
+            <!-- Subtitle -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/your_ai_companion"
+                style="@style/OrabelTextSubtitle"
+                android:gravity="center"
+                android:layout_marginBottom="48dp"
+                android:textSize="18sp" />
+
+            <!-- Mode Selection Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/choose_your_mode"
+                style="@style/OrabelTextTitle"
+                android:gravity="center"
+                android:layout_marginBottom="32dp"
+                android:textSize="24sp" />
+
+            <!-- Local Mode Card -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardLocalMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                style="@style/OrabelCardStyle"
+                android:background="@drawable/modern_card"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?android:attr/selectableItemBackground">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/local_mode"
+                        style="@style/OrabelTextTitle"
+                        android:textSize="20sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/local_mode_desc"
+                        style="@style/OrabelTextBody"
+                        android:textSize="16sp" />
+
+                    <!-- Action Button -->
+                    <Button
+                        android:id="@+id/btnStartLocal"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="@string/lets_go"
+                        style="@style/OrabelButtonPrimary"
+                        android:layout_gravity="end" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- Cloud Mode Card (Coming Soon) -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cardCloudMode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="32dp"
+                style="@style/OrabelCardStyle"
+                android:background="@drawable/modern_card"
+                android:alpha="0.7">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/cloud_mode"
+                        style="@style/OrabelTextTitle"
+                        android:textSize="20sp"
+                        android:layout_marginBottom="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/cloud_mode_desc"
+                        style="@style/OrabelTextBody"
+                        android:textSize="16sp" />
+
+                    <!-- Coming Soon Badge -->
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:text="🔮 Coming Soon"
+                        style="@style/OrabelButtonSecondary"
+                        android:background="@drawable/gradient_button"
+                        android:padding="12dp"
+                        android:textColor="@color/text_primary"
+                        android:layout_gravity="end" />
+
+                </LinearLayout>
+
+            </androidx.cardview.widget.CardView>
+
+            <!-- Footer -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✨ Powered by Orabel IA"
+                style="@style/OrabelTextBody"
+                android:gravity="center"
+                android:textSize="14sp"
+                android:alpha="0.7"
+                android:layout_marginTop="32dp" />
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

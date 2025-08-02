@@ -1,0 +1,54 @@
+===============================================
+    NUEVA CLAVE DE FIRMA - LYRION APP
+===============================================
+
+📅 FECHA: 13 de Julio 2025
+🔄 MOTIVO: Cambio de clave de firma para Google Play Console
+
+🔐 NUEVO KEYSTORE:
+   - Archivo: lyrion-upload-key-new.keystore
+   - Alias: lyrion
+   - Contraseñas: LyrionIA2024#
+   - SHA1: 90:D4:FD:77:93:4A:2B:EF:1D:B4:81:F0:EB:50:B3:71:DD:36:82:4D
+
+📦 ARCHIVO PEPK PARA GOOGLE PLAY:
+   - Archivo: lyrion-new-upload-key.zip
+   - Tamaño: 2,779 bytes
+   - Creado: 13/07/2025 04:09:12 p.m.
+
+⚠️ CONSECUENCIAS DEL CAMBIO:
+   ✓ Los usuarios de versiones internas/cerradas deben desinstalar y reinstalar la app
+   ✓ No se pueden usar versiones de app subidas anteriormente
+   ✓ Debes volver a subir todas las versiones de la app
+
+📋 PASOS PARA GOOGLE PLAY CONSOLE:
+   1. Ve a Google Play Console
+   2. Selecciona tu app: Lyrion
+   3. Ve a Configuración > Firma de aplicaciones
+   4. Selecciona "Cambiar clave de firma de la app"
+   5. Sube el archivo: lyrion-new-upload-key.zip
+   6. Confirma el cambio
+
+📱 AAB GENERADO:
+   - Archivo: app-release.aab
+   - Tamaño: ~118 MB
+   - Firmado con: lyrion-upload-key-new.keystore
+   - Verificado: ✅ jar verified
+
+🔄 PARA FUTURAS VERSIONES:
+   - Usa SIEMPRE: lyrion-upload-key-new.keystore
+   - Alias: lyrion
+   - Contraseñas: LyrionIA2024#
+   - El archivo keystore.properties ya está actualizado
+
+⚠️ BACKUP IMPORTANTE:
+   - Guarda una copia segura de: lyrion-upload-key-new.keystore
+   - Ubicación actual: C:\Lyrion-main\lyrion-upload-key-new.keystore
+   - NUNCA pierdas este archivo
+
+📊 ARCHIVOS GENERADOS:
+   1. lyrion-upload-key-new.keystore (nuevo keystore)
+   2. lyrion-new-upload-key.zip (archivo PEPK para Google Play)
+   3. app-release.aab (AAB firmado listo para subir)
+
+✅ ESTADO: Listo para subir a Google Play Console

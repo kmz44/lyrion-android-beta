@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+    
+    <!-- Background circle with gradient effect -->
+    <path
+        android:pathData="M60,10 C87.6,10 110,32.4 110,60 C110,87.6 87.6,110 60,110 C32.4,110 10,87.6 10,60 C10,32.4 32.4,10 60,10 Z"
+        android:fillColor="#00D4AA"/>
+    
+    <!-- Inner circle for depth -->
+    <path
+        android:pathData="M60,20 C81.5,20 99,37.5 99,59 C99,80.5 81.5,98 60,98 C38.5,98 21,80.5 21,59 C21,37.5 38.5,20 60,20 Z"
+        android:fillColor="#6C5CE7"/>
+    
+    <!-- AI symbol -->
+    <path
+        android:pathData="M40,45 L50,35 L55,40 L60,35 L70,45 L65,50 L70,55 L60,65 L55,60 L50,65 L40,55 L45,50 Z"
+        android:fillColor="#FFFFFF"/>
+      <!-- Modern dots pattern -->
+    <path android:pathData="M48,75 A3,3 0 1,1 42,75 A3,3 0 1,1 48,75 Z" android:fillColor="#FFFFFF"/>
+    <path android:pathData="M63,75 A3,3 0 1,1 57,75 A3,3 0 1,1 63,75 Z" android:fillColor="#FFFFFF"/>
+    <path android:pathData="M78,75 A3,3 0 1,1 72,75 A3,3 0 1,1 78,75 Z" android:fillColor="#FFFFFF"/>
+</vector>

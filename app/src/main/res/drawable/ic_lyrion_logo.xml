@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="512dp"
+    android:height="512dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+    
+    <!-- Background with modern gradient -->
+    <path
+        android:fillColor="#0F0F23"
+        android:pathData="M0,0h512v512h-512z"/>
+    
+    <!-- Outer glow effect -->
+    <path
+        android:fillColor="#6366F1"
+        android:pathData="M256,256m-200,0a200,200 0,1 1,400 0a200,200 0,1 1,-400 0"
+        android:fillType="evenOdd"/>
+    
+    <path
+        android:fillColor="#0F0F23"
+        android:pathData="M256,256m-180,0a180,180 0,1 1,360 0a180,180 0,1 1,-360 0"/>
+    
+    <!-- Robot head - Vibrant gradient -->
+    <path
+        android:fillColor="#A855F7"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="8"
+        android:pathData="M180,180 Q180,160 200,160 L312,160 Q332,160 332,180 L332,260 Q332,280 312,280 L200,280 Q180,280 180,260 Z"/>
+    
+    <!-- Robot head top with neon effect -->
+    <path
+        android:fillColor="#C084FC"
+        android:strokeColor="#FBBF24"
+        android:strokeWidth="6"
+        android:pathData="M200,160 Q256,130 312,160"/>
+    
+    <!-- Robot visor - Neon blue -->
+    <path
+        android:fillColor="#1E293B"
+        android:strokeColor="#06B6D4"
+        android:strokeWidth="4"
+        android:pathData="M190,200 Q190,190 200,190 L312,190 Q322,190 322,200 L322,250 Q322,260 312,260 L200,260 Q190,260 190,250 Z"/>
+    
+    <!-- Robot eyes - Electric neon -->
+    <path
+        android:fillColor="#00F5FF"
+        android:pathData="M210,210 Q210,205 215,205 L245,205 Q250,205 250,210 L250,230 Q250,235 245,235 L215,235 Q210,235 210,230 Z"/>
+    
+    <path
+        android:fillColor="#00F5FF"
+        android:pathData="M262,210 Q262,205 267,205 L297,205 Q302,205 302,210 L302,230 Q302,235 297,235 L267,235 Q262,235 262,230 Z"/>
+    
+    <!-- Eye inner glow -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M220,218 Q220,215 222,215 L238,215 Q240,215 240,218 L240,222 Q240,225 238,225 L222,225 Q220,225 220,222 Z"/>
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M272,218 Q272,215 274,215 L290,215 Q292,215 292,218 L292,222 Q292,225 290,225 L274,225 Q272,225 272,222 Z"/>
+    
+    <!-- Robot antennae - Neon pink -->
+    <path
+        android:fillColor="#EC4899"
+        android:pathData="M160,130 L160,180 M160,130 A15,15 0 0,1 160,100 A15,15 0 0,1 160,130 Z"/>
+    
+    <path
+        android:fillColor="#EC4899"
+        android:pathData="M352,130 L352,180 M352,130 A15,15 0 0,1 352,100 A15,15 0 0,1 352,130 Z"/>
+    
+    <!-- Antenna glow rings -->
+    <path
+        android:fillColor="#F472B6"
+        android:pathData="M160,115 A10,10 0 0,1 160,95 A10,10 0 0,1 160,115 Z"/>
+    
+    <path
+        android:fillColor="#F472B6"
+        android:pathData="M352,115 A10,10 0 0,1 352,95 A10,10 0 0,1 352,115 Z"/>
+    
+    <!-- Robot headphones - Cyber style -->
+    <path
+        android:fillColor="#10B981"
+        android:strokeColor="#34D399"
+        android:strokeWidth="6"
+        android:pathData="M120,180 Q120,160 130,160 L160,160 L160,240 L130,240 Q120,240 120,200 Z"/>
+    
+    <path
+        android:fillColor="#10B981"
+        android:strokeColor="#34D399"
+        android:strokeWidth="6"
+        android:pathData="M352,160 L382,160 Q392,160 392,180 L392,200 Q392,240 382,240 L352,240 Z"/>
+    
+    <!-- Headphone details -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M135,190 A8,8 0 0,1 135,210 A8,8 0 0,1 135,190 Z"/>
+    
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M377,190 A8,8 0 0,1 377,210 A8,8 0 0,1 377,190 Z"/>
+    
+    <!-- Robot neck - Gradient -->
+    <path
+        android:fillColor="#7C3AED"
+        android:strokeColor="#A78BFA"
+        android:strokeWidth="6"
+        android:pathData="M236,280 L276,280 L276,330 L236,330 Z"/>
+    
+    <!-- Robot body - Holographic effect -->
+    <path
+        android:fillColor="#6366F1"
+        android:strokeColor="#818CF8"
+        android:strokeWidth="8"
+        android:pathData="M180,330 Q180,320 190,320 L322,320 Q332,320 332,330 L332,400 Q332,410 322,410 L190,410 Q180,410 180,400 Z"/>
+    
+    <!-- Body control panels - Neon accents -->
+    <path
+        android:fillColor="#F59E0B"
+        android:strokeColor="#FCD34D"
+        android:strokeWidth="2"
+        android:pathData="M200,350 Q200,345 205,345 L235,345 Q240,345 240,350 L240,360 Q240,365 235,365 L205,365 Q200,365 200,360 Z"/>
+    
+    <path
+        android:fillColor="#EF4444"
+        android:strokeColor="#FCA5A5"
+        android:strokeWidth="2"
+        android:pathData="M272,350 Q272,345 277,345 L307,345 Q312,345 312,350 L312,360 Q312,365 307,365 L277,365 Q272,365 272,360 Z"/>
+    
+    <path
+        android:fillColor="#10B981"
+        android:strokeColor="#6EE7B7"
+        android:strokeWidth="2"
+        android:pathData="M236,380 Q236,375 241,375 L271,375 Q276,375 276,380 L276,390 Q276,395 271,395 L241,395 Q236,395 236,390 Z"/>
+    
+    <!-- Holographic highlights -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M200,170 Q256,165 312,170 L312,172 Q256,167 200,172 Z"/>
+    
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M190,340 Q256,335 322,340 L322,342 Q256,337 190,342 Z"/>
+    
+    <!-- Electric sparks around robot -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M140,150 L145,160 L140,170 L135,160 Z"/>
+    
+    <path
+        android:fillColor="#06B6D4"
+        android:pathData="M370,150 L375,160 L370,170 L365,160 Z"/>
+    
+    <path
+        android:fillColor="#EC4899"
+        android:pathData="M150,350 L155,360 L150,370 L145,360 Z"/>
+    
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M360,350 L365,360 L360,370 L355,360 Z"/>
+    
+    <!-- Cyber grid lines -->
+    <path
+        android:fillColor="#374151"
+        android:pathData="M100,100 L412,100 M100,200 L412,200 M100,300 L412,300 M100,400 L412,400"/>
+    
+    <path
+        android:fillColor="#374151"
+        android:pathData="M100,100 L100,412 M200,100 L200,412 M300,100 L300,412 M400,100 L400,412"/>
+</vector>
