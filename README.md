@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 # LYRION - AI Assistant Android App
-=======
-# CMABIOS - Orabel Android App
->>>>>>> 4218796b74cd301551974ada1f498ea4a5439254
 
 Una aplicación Android que implementa llama.cpp para inferencia de modelos de lenguaje localmente en dispositivos móviles.
 
@@ -13,7 +9,6 @@ Una aplicación Android que implementa llama.cpp para inferencia de modelos de l
 - **CMake** (versión 3.18 o superior)
 - **Git**
 - **Java JDK 8 o superior**
-<<<<<<< HEAD
 - Dispositivo Android con **API level 35+** (Android 15+)
 - Al menos **4GB de RAM** disponible en el dispositivo
 - **2GB de almacenamiento libre** para modelos
@@ -34,18 +29,11 @@ Una aplicación Android que implementa llama.cpp para inferencia de modelos de l
 
 **¡Ya no necesitas el keystore original!** Todo está configurado para funcionar inmediatamente.
 
-=======
-- Dispositivo Android con **API level 21+** (Android 5.0+)
-- Al menos **4GB de RAM** disponible en el dispositivo
-- **2GB de almacenamiento libre** para modelos
-
->>>>>>> 4218796b74cd301551974ada1f498ea4a5439254
 ## 🚀 Instalación y Configuración
 
 ### Paso 1: Clonar el Repositorio
 
 ```bash
-<<<<<<< HEAD
 git clone https://github.com/kmz44/Lyrion.git
 cd Lyrion
 ```
@@ -77,31 +65,6 @@ Lyrion/
 ```
 
 ### Paso 4: Configurar Android Studio
-=======
-git clone https://github.com/kmz44/cmabios.git
-cd cmabios
-```
-
-### Paso 2: Configurar llama.cpp
-
-La aplicación depende de llama.cpp para la inferencia de modelos. Sigue estos pasos:
-
-1. **Clonar llama.cpp** (si no está incluido):
-```bash
-git clone https://github.com/ggerganov/llama.cpp.git
-```
-
-2. **Verificar la estructura del proyecto**:
-```
-cmabios/
-├── llama.cpp/          # Repositorio de llama.cpp
-├── orabel/             # Módulo principal de la app
-├── app/                # Aplicación Android
-└── ...
-```
-
-### Paso 3: Configurar Android Studio
->>>>>>> 4218796b74cd301551974ada1f498ea4a5439254
 
 1. **Abrir el proyecto** en Android Studio
 2. **Instalar Android NDK**:
@@ -113,11 +76,7 @@ cmabios/
    - En `SDK Tools`, marca también `CMake`
    - Instala la versión recomendada
 
-<<<<<<< HEAD
 ### Paso 5: Configurar Variables de Entorno
-=======
-### Paso 4: Configurar Variables de Entorno
->>>>>>> 4218796b74cd301551974ada1f498ea4a5439254
 
 Crea o edita el archivo `local.properties` en la raíz del proyecto:
 
@@ -126,7 +85,6 @@ sdk.dir=C\:\\Users\\TuUsuario\\AppData\\Local\\Android\\Sdk
 ndk.dir=C\:\\Users\\TuUsuario\\AppData\\Local\\Android\\Sdk\\ndk\\[VERSION]
 ```
 
-<<<<<<< HEAD
 ### Paso 6: Compilar el Proyecto
 
 **Para compilación de desarrollo:**
@@ -148,25 +106,6 @@ ndk.dir=C\:\\Users\\TuUsuario\\AppData\\Local\\Android\\Sdk\\ndk\\[VERSION]
 - **Debug**: `app/build/outputs/apk/debug/app-debug.apk`
 - **Release**: `app/build/outputs/apk/release/app-release.apk`
 
-=======
-### Paso 5: Compilar el Proyecto
-
-1. **Limpiar el proyecto**:
-```bash
-./gradlew clean
-```
-
-2. **Compilar**:
-```bash
-./gradlew build
-```
-
-3. **Generar APK**:
-```bash
-./gradlew assembleDebug
-```
-
->>>>>>> 4218796b74cd301551974ada1f498ea4a5439254
 ## 📱 Instalación de la APK
 
 ### Opción 1: Desde Android Studio
@@ -175,16 +114,11 @@ ndk.dir=C\:\\Users\\TuUsuario\\AppData\\Local\\Android\\Sdk\\ndk\\[VERSION]
 3. Ejecuta `Run > Run 'app'`
 
 ### Opción 2: Instalación Manual
-<<<<<<< HEAD
 1. Localiza el APK generado en: `app/build/outputs/apk/release/app-release.apk`
-=======
-1. Localiza el APK generado en: `app/build/outputs/apk/debug/app-debug.apk`
->>>>>>> 4218796b74cd301551974ada1f498ea4a5439254
 2. Transfiere el archivo a tu dispositivo Android
 3. Habilita **Fuentes desconocidas** en Configuración > Seguridad
 4. Instala el APK tocándolo desde el explorador de archivos
 
-<<<<<<< HEAD
 ### 📦 Descargar APK Precompilada
 Puedes descargar la versión más reciente desde GitHub Releases:
 ```
@@ -204,8 +138,6 @@ https://github.com/kmz44/Lyrion/releases/latest
 - Credenciales respaldadas en `CREDENCIALES_IMPORTANTES.txt`
 - Sistema de doble keystore (signing + upload keys)
 
-=======
->>>>>>> 4218796b74cd301551974ada1f498ea4a5439254
 ## 🧠 Configuración de Modelos
 
 ### Modelos Recomendados
@@ -302,30 +234,6 @@ Este proyecto está bajo la licencia MIT. Ver el archivo `LICENSE` para más det
 ## 📞 Soporte
 
 Si encuentras problemas o tienes preguntas:
-<<<<<<< HEAD
-- Abre un issue en GitHub: https://github.com/kmz44/Lyrion/issues
-- Descarga la APK: https://github.com/kmz44/Lyrion/releases
-- Revisa la documentación de [llama.cpp](https://github.com/ggerganov/llama.cpp)
-- Consulta los logs de la aplicación para más detalles
-
-## 🔐 Notas Importantes de Firmado
-
-**Para desarrolladores:**
-- ✅ Todo el sistema de keystores está configurado automáticamente
-- ✅ Compatible con Google Play Store sin configuración adicional
-- ✅ Credenciales seguras incluidas en el repositorio
-- ✅ Sistema Google Play App Signing configurado
-
-**Ya no necesitas:**
-- ❌ Crear keystores manualmente
-- ❌ Configurar credenciales de firmado
-- ❌ Preocuparte por pérdida de keystores originales
-- ❌ Configuración manual de Google Play signing
-
----
-
-**Nota**: Esta aplicación está optimizada para Android 15+ y incluye sistema completo de firmado automático.
-=======
 - Abre un issue en GitHub
 - Revisa la documentación de [llama.cpp](https://github.com/ggerganov/llama.cpp)
 - Consulta los logs de la aplicación para más detalles
@@ -333,4 +241,3 @@ Si encuentras problemas o tienes preguntas:
 ---
 
 **Nota**: Esta aplicación está en desarrollo activo. Algunas características pueden estar incompletas o experimentales.
->>>>>>> 4218796b74cd301551974ada1f498ea4a5439254
