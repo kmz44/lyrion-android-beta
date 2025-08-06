@@ -18,8 +18,8 @@ android {
         applicationId = "io.orabel.orabelandroid"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.0.9"
+        versionCode = 17
+        versionName = "1.1.7"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -62,8 +62,13 @@ android {
         getByName("release") {
             isMinifyEnabled = true
             isShrinkResources = true
+            isDebuggable = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = signingConfigs.getByName("release")
+            
+            // Explícitamente evitar testOnly
+            manifestPlaceholders["testOnly"] = "false"
+            manifestPlaceholders["debuggable"] = "false"
         }
         getByName("debug") {
             isDebuggable = true
@@ -192,13 +197,17 @@ dependencies {
     // Coroutines for Google Tasks
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
 
+    // Test dependencies - SOLO para testing, NO incluidas en release
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    
+    // Debug dependencies - SOLO para debug builds
     debugImplementation(libs.androidx.ui.tooling)
-    debugImplementation(libs.androidx.ui.test.manifest)
+    // COMENTADO: Esta línea causa android:testOnly=true en AAB
+    // debugImplementation(libs.androidx.ui.test.manifest)
 }
 
 apply(plugin = "io.objectbox")

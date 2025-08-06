@@ -1,0 +1,22 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "java.configuration.updateBuildConfiguration": "automatic",
+        "java.compile.nullAnalysis.mode": "automatic",
+        "gradle.newtask": false,
+        "files.associations": {
+            "*.gradle.kts": "kotlin"
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "vscjava.vscode-gradle",
+            "mathiasfrohlich.kotlin",
+            "ms-vscode.vscode-gradle"
+        ]
+    }
+}

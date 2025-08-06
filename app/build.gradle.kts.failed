@@ -1,0 +1,161 @@
+import java.lang.System
+import java.util.Properties
+import java.io.FileInputStream
+
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
+    id("com.google.devtools.ksp")
+    kotlin("kapt")
+}
+
+android {
+    namespace = "io.orabel.orabelandroid"
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId = "io.orabel.orabelandroid"
+        minSdk = 26
+        targetSdk = 35
+        versionCode = 13
+        versionName = "1.1.2"
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // NDK configuration for 16 KB page size compatibility
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+        }
+        
+        // Additional 16KB compatibility configuration
+        externalNativeBuild {
+            cmake {
+                // Force 16 KB page alignment for all native libraries
+                arguments += "-DANDROID_LD=lld"
+                arguments += "-DANDROID_PAGE_SIZE=16384"
+                cppFlags += "-DANDROID_PAGE_SIZE=16384"
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            }
+        }
+        
+        vectorDrawables {
+            useSupportLibrary = true
+        }
+    }
+
+    // Load keystore properties
+    val keystorePropertiesFile = rootProject.file("keystore.properties")
+    val keystoreProperties = Properties()
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+    }
+
+    signingConfigs {
+        create("release") {
+            if (keystorePropertiesFile.exists()) {
+                keyAlias = keystoreProperties["keyAlias"] as String
+                keyPassword = keystoreProperties["keyPassword"] as String
+                storeFile = file(keystoreProperties["storeFile"] as String)
+                storePassword = keystoreProperties["storePassword"] as String
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            isDebuggable = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfig = signingConfigs.getByName("release")
+            
+            // Explicit production settings
+            isJniDebuggable = false
+            isPseudoLocalesEnabled = false
+            isTestCoverageEnabled = false
+            
+            // Manifestplaceholders to ensure no debug flags
+            manifestPlaceholders["isDebug"] = "false"
+        }
+        debug {
+            isDebuggable = true
+            isMinifyEnabled = false
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.14"
+    }
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+
+    // NDK and CMake configuration for llama.cpp
+    externalNativeBuild {
+        cmake {
+            path = file("../llama.cpp/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+}
+
+dependencies {
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.ui.graphics)
+    implementation(libs.androidx.ui.tooling.preview)
+    implementation(libs.androidx.material3)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.material)
+    implementation(libs.androidx.navigation.compose)
+    
+    // Koin for dependency injection
+    implementation(libs.koin.android)
+    implementation(libs.koin.androidx.compose)
+    implementation(libs.koin.annotations)
+    kapt(libs.koin.ksp.compiler)
+    
+    // ObjectBox database
+    implementation(libs.objectbox.android)
+    kapt(libs.objectbox.processor)
+    
+    // Orabel module
+    implementation(project(":orabel"))
+
+    // Test dependencies (ONLY for testing, not included in release)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(libs.androidx.ui.test.junit4)
+    
+    debugImplementation(libs.androidx.ui.tooling)
+    debugImplementation(libs.androidx.ui.test.manifest)
+}

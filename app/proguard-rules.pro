@@ -5,6 +5,12 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
+# Remove debug logs in release builds
+-assumenosideeffects class android.util.Log {
+    public static *** d(...);
+    public static *** v(...);
+}
+
 # If your project uses WebView with JS, uncomment the following
 # and specify the fully qualified class name to the JavaScript interface
 # class:

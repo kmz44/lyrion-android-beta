@@ -1,0 +1,33 @@
+﻿{
+    "files.watcherExclude":  {
+                                 "**/.gradle/**":  true,
+                                 "**/node_modules/*/**":  true,
+                                 "**/.hg/store/**":  true,
+                                 "**/.git/objects/**":  true,
+                                 "**/.git/subtree-cache/**":  true,
+                                 "**/llama.cpp/**":  true,
+                                 "**/build/**":  true
+                             },
+    "git.confirmSync":  false,
+    "git.autofetch":  true,
+    "files.exclude":  {
+                          "**/build":  true,
+                          "**/.hg":  true,
+                          "**/.DS_Store":  true,
+                          "**/.git":  true,
+                          "**/Thumbs.db":  true,
+                          "**/.svn":  true,
+                          "**/CVS":  true,
+                          "**/.gradle":  true
+                      },
+    "git.detectSubmodules":  false,
+    "git.enableSmartCommit":  true,
+    "search.exclude":  {
+                           "**/build":  true,
+                           "**/llama.cpp":  true,
+                           "**/.gradle":  true,
+                           "**/node_modules":  true,
+                           "**/*.code-search":  true,
+                           "**/bower_components":  true
+                       }
+}
