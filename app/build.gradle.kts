@@ -76,7 +76,6 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
             // Optimizations for debug builds
             isJniDebuggable = false
-            isRenderscriptDebuggable = false
             isPseudoLocalesEnabled = false
         }
     }
