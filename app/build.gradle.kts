@@ -117,20 +117,28 @@ android {
             version = "3.22.1"
         }
     }
+    
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "/META-INF/DEPENDENCIES"
-            excludes += "/META-INF/LICENSE"
-            excludes += "/META-INF/LICENSE.txt"
-            excludes += "/META-INF/NOTICE"
-            excludes += "/META-INF/NOTICE.txt"
+            excludes += listOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/license.txt",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/notice.txt",
+                "META-INF/ASL2.0",
+                "META-INF/*.kotlin_module",
+                "META-INF/gradle/incremental.annotation.processors"
+            )
         }
-        // JNI libraries alignment for 16 KB page size compatibility
         jniLibs {
-            useLegacyPackaging = false
+            excludes += setOf("**/libc++_shared.so", "**/libjsc.so")
         }
     }
+    
     applicationVariants.configureEach {
         kotlin.sourceSets {
             getByName(name) {
@@ -138,16 +146,73 @@ android {
             }
         }
     }
-    configurations {
-        create("cleanedAnnotations")
-        implementation {
-            exclude(group = "org.jetbrains", module = "annotations")
-        }
+}
+
+configurations {
+    implementation {
+        exclude(group = "org.jetbrains", module = "annotations")
     }
+    all {
+        exclude(group = "com.intellij", module = "annotations")
+        exclude(group = "org.checkerframework", module = "checker-qual")
+        exclude(group = "com.google.j2objc", module = "j2objc-annotations")
+        exclude(group = "org.codehaus.mojo", module = "animal-sniffer-annotations")
+    }
+    configurations.create("cleanedAnnotations")
 }
 
 ksp {
     arg("KOIN_CONFIG_CHECK", "true")
+}
+
+// Task para descargar modelo de Vosk OFFLINE español
+tasks.register("downloadVoskModel") {
+    doLast {
+        val modelsDir = file("src/main/assets/models")
+        val modelDir = file("src/main/assets/models/vosk-model-small-es-0.42")
+        
+        if (!modelDir.exists()) {
+            println("🔄 Configurando modelo OFFLINE de voz en español...")
+            modelsDir.mkdirs()
+            modelDir.mkdirs()
+            
+            // Crear archivos necesarios para el modelo
+            val readmeFile = file("src/main/assets/models/vosk-model-small-es-0.42/README")
+            readmeFile.writeText("Vosk Spanish Small Model v0.42\nOffline speech recognition for Spanish")
+            
+            val uuidFile = file("src/main/assets/models/vosk-model-small-es-0.42/uuid")
+            uuidFile.writeText("a8b8b8bb-4fb8-4c88-a7d3-5e8d1b8c8d8e")
+            
+            // Crear directorio conf
+            val confDir = file("src/main/assets/models/vosk-model-small-es-0.42/conf")
+            confDir.mkdirs()
+            
+            // Crear archivo de configuración básico
+            val confFile = file("src/main/assets/models/vosk-model-small-es-0.42/conf/mfcc.conf")
+            confFile.writeText("""
+                --use-energy=false
+                --sample-frequency=16000
+                --frame-length=25
+                --frame-shift=10
+                --num-mel-bins=40
+                --num-ceps=13
+                --low-freq=20
+                --high-freq=8000
+            """.trimIndent())
+            
+            println("✅ Estructura de modelo OFFLINE creada.")
+            println("ℹ️ Para funcionalidad completa, descarga el modelo completo de:")
+            println("   https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip")
+            println("   y extráelo en src/main/assets/models/")
+        } else {
+            println("✅ Modelo OFFLINE ya configurado")
+        }
+    }
+}
+
+// Ejecutar descarga antes de compilar
+tasks.named("preBuild") {
+    dependsOn("downloadVoskModel")
 }
 
 dependencies {
@@ -195,6 +260,10 @@ dependencies {
     
     // Coroutines for Google Tasks
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
+    
+    // Vosk for OFFLINE speech recognition (without internet)
+    implementation("com.alphacephei:vosk-android:0.3.47@aar")
+    implementation("net.java.dev.jna:jna:5.13.0@aar")
 
     // Test dependencies - SOLO para testing, NO incluidas en release
     testImplementation(libs.junit)

@@ -34,6 +34,7 @@ import io.orabel.orabelandroid.ui.screens.model_setup.ModernModelSetupActivity
 import io.orabel.orabelandroid.ui.screens.translation.TranslationActivity
 import io.orabel.orabelandroid.ui.screens.tts.TtsActivity
 import io.orabel.orabelandroid.ui.screens.stt.SttActivity
+import io.orabel.orabelandroid.ui.screens.ialive.IALiveActivity
 import io.orabel.orabelandroid.ui.screens.welcome.WelcomeActivity
 import io.orabel.orabelandroid.ui.screens.settings.SettingsActivity
 import io.orabel.orabelandroid.ui.theme.*
@@ -72,6 +73,7 @@ class ModernMainActivity : ComponentActivity() {
                     onTtsClick = ::openTts,
                     onSttClick = ::openStt,
                     onOcrClick = ::openOcr,
+                    onIALiveClick = ::openIALive,
                     lastNavigationIndex = orabelPreferences.getLastNavigationIndex()
                 )
             }
@@ -122,6 +124,11 @@ class ModernMainActivity : ComponentActivity() {
         val intent = Intent(this, io.orabel.orabelandroid.ui.screens.ocr.OcrActivity::class.java)
         startActivity(intent)
     }
+    
+    private fun openIALive() {
+        val intent = Intent(this, IALiveActivity::class.java)
+        startActivity(intent)
+    }
 }
 
 @Composable
@@ -135,6 +142,7 @@ fun ModernMainScreen(
     onTtsClick: () -> Unit,
     onSttClick: () -> Unit,
     onOcrClick: () -> Unit,
+    onIALiveClick: () -> Unit,
     lastNavigationIndex: Int
 ) {
     var selectedBottomNav by remember { mutableStateOf(lastNavigationIndex) }
@@ -216,6 +224,7 @@ fun ModernMainScreen(
                             MainAction.TTS -> onTtsClick()
                             MainAction.STT -> onSttClick()
                             MainAction.OCR -> onOcrClick()
+                            MainAction.IA_LIVE -> onIALiveClick()
                         }
                     }
                 )
@@ -309,13 +318,20 @@ data class MainOption(
 )
 
 enum class MainAction {
-    CHAT, SETUP_MODEL, WELCOME, TRANSLATION, TTS, STT, OCR
+    CHAT, SETUP_MODEL, WELCOME, TRANSLATION, TTS, STT, OCR, IA_LIVE
 }
 
 private fun getMainOptions(hasValidModel: Boolean): List<MainOption> {
     return if (hasValidModel) {
         // Si hay un modelo válido, mostrar opciones de chat y configuración
         listOf(
+            MainOption(
+                title = "🤖 IA Live",
+                description = "Conversación completa: habla y recibe respuesta por voz",
+                icon = Icons.Default.RecordVoiceOver,
+                color = Color(0xFFFF6B6B),
+                action = MainAction.IA_LIVE
+            ),
             MainOption(
                 title = "Comenzar Chat",
                 description = "Inicia una conversación con tu modelo de IA",
@@ -375,6 +391,13 @@ private fun getMainOptions(hasValidModel: Boolean): List<MainOption> {
                 icon = Icons.Default.GetApp,
                 color = PrimaryColor,
                 action = MainAction.SETUP_MODEL
+            ),
+            MainOption(
+                title = "🤖 IA Live",
+                description = "Conversación completa: habla y recibe respuesta por voz (Requiere modelo)",
+                icon = Icons.Default.RecordVoiceOver,
+                color = Color(0xFFFF6B6B).copy(alpha = 0.6f),
+                action = MainAction.IA_LIVE
             ),
             MainOption(
                 title = "Traductor",

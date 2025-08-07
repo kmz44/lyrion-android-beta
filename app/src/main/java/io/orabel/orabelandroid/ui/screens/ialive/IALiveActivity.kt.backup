@@ -1,0 +1,1192 @@
+/*
+ * IA Live Activity - Integración completa STT → LLM → TTS
+ * Copyright 2024 Orabel
+ * 
+ * Esta actividad combina las tres funciones principales:
+ * - Reconocimiento de voz (STT) usando Vosk offline
+ * - Procesamiento con modelo LLM local
+ * - Síntesis de voz (TTS) para la respuesta
+ */
+
+package io.orabel.orabelandroid.ui.screens.ialive
+
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
+import android.media.AudioFormat
+import android.media.AudioRecord
+import android.media.MediaRecorder
+import android.media.MediaRecorder.AudioSource
+import android.os.Bundle
+import android.os.Environment
+import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import io.orabel.orabel.Orabel
+import io.orabel.orabelandroid.data.*
+import io.orabel.orabelandroid.llm.ModelsRepository
+import io.orabel.orabelandroid.tts.TtsRepository
+import io.orabel.orabelandroid.ui.theme.*
+import io.orabel.orabelandroid.utils.SafeToast
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.collectLatest
+import org.koin.android.ext.android.inject
+import org.vosk.Model
+import org.vosk.Recognizer
+import org.vosk.android.RecognitionListener
+import org.vosk.android.SpeechService
+import org.vosk.android.StorageService
+import java.io.File
+import java.io.IOException
+import java.util.*
+
+class IALiveActivity : ComponentActivity(), RecognitionListener {
+
+    // Dependencias
+    private val chatsDB: ChatsDB by inject()
+    private val messagesDB: MessagesDB by inject()
+    private val modelsRepository: ModelsRepository by inject()
+    private val ttsRepository: TtsRepository by inject()
+    
+    // Estados principales
+    private var currentState by mutableStateOf(IALiveState.IDLE)
+    private var displayText by mutableStateOf("")
+    private var conversationHistory by mutableStateOf(listOf<ConversationMessage>())
+    
+    // Estados de componentes
+    private var isListening by mutableStateOf(false)
+    private var isProcessingLLM by mutableStateOf(false)
+    private var isSpeaking by mutableStateOf(false)
+    
+    // Modelos y servicios
+    private var voskModel: Model? = null
+    
+    // NUEVO: Variables para reconocimiento MANUAL (sin callbacks automáticos)
+    private var voskRecognizer: org.vosk.Recognizer? = null
+    private var audioRecord: android.media.AudioRecord? = null
+    private var recordingThread: Thread? = null
+    private var isManualRecording = false
+    private var finalRecognizedText = ""
+    
+    private var currentChat: Chat? = null
+    private var currentLLMModel: LLMModel? = null
+    private var mediaRecorder: MediaRecorder? = null
+    private var orabeLLMInstance: Orabel? = null // Instancia para el modelo LLM
+    
+    // Control de flujo
+    private var llmGenerationJob: Job? = null
+    private var partialLLMResponse by mutableStateOf("")
+    
+    // Permisos
+    private val permissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        Log.d("IALive", "Permisos recibidos: $permissions")
+        
+        // Solo verificar el permiso crítico: RECORD_AUDIO
+        val audioPermissionGranted = permissions[Manifest.permission.RECORD_AUDIO] == true
+        
+        if (audioPermissionGranted) {
+            Log.d("IALive", "Permiso de audio concedido, inicializando componentes...")
+            initializeComponents()
+        } else {
+            SafeToast.showSafe(this, "Se requiere permiso de micrófono para IA Live")
+            finish()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        
+        checkAndRequestPermissions()
+        
+        setContent {
+            ModernOrabelTheme {
+                IALiveScreen(
+                    state = currentState,
+                    displayText = displayText,
+                    conversationHistory = conversationHistory,
+                    isListening = isListening,
+                    isProcessingLLM = isProcessingLLM,
+                    isSpeaking = isSpeaking,
+                    onStartListening = { startListeningOnPress() },
+                    onStopListening = { stopListeningOnRelease() },
+                    onStopAll = { stopAllProcesses() },
+                    onBackClick = { finish() },
+                    onSelectModel = { showModelSelection() }
+                )
+            }
+        }
+    }
+
+    private fun checkAndRequestPermissions() {
+        Log.d("IALive", "Verificando permisos...")
+        
+        // Solo solicitar permisos críticos
+        val criticalPermissions = arrayOf(
+            Manifest.permission.RECORD_AUDIO
+        )
+        
+        val notGranted = criticalPermissions.filter {
+            val granted = ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
+            Log.d("IALive", "Permiso $it: ${if (granted) "CONCEDIDO" else "NO CONCEDIDO"}")
+            !granted
+        }
+        
+        if (notGranted.isEmpty()) {
+            Log.d("IALive", "Todos los permisos críticos concedidos, inicializando...")
+            initializeComponents()
+        } else {
+            Log.d("IALive", "Solicitando permisos: $notGranted")
+            permissionsLauncher.launch(criticalPermissions)
+        }
+    }
+
+    private fun initializeComponents() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                withContext(Dispatchers.Main) {
+                    currentState = IALiveState.INITIALIZING
+                    displayText = "🔧 Inicializando componentes..."
+                }
+
+                // 1. Inicializar Vosk para STT
+                initializeVosk()
+                
+                // 2. Cargar chat por defecto y modelo LLM
+                initializeLLM()
+                
+                // 3. Inicializar TTS
+                initializeTTS()
+                
+                withContext(Dispatchers.Main) {
+                    currentState = IALiveState.READY
+                    displayText = "✅ IA Live listo\n\nPresiona el botón para comenzar una conversación"
+                }
+                
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    currentState = IALiveState.ERROR
+                    displayText = "❌ Error inicializando: ${e.message}"
+                }
+            }
+        }
+    }
+
+    private suspend fun initializeVosk() {
+        withContext(Dispatchers.Main) {
+            displayText = "📱 Configurando reconocimiento de voz..."
+        }
+        
+        val modelName = "vosk-model-small-es-0.42"
+        StorageService.unpack(
+            this@IALiveActivity, 
+            modelName, 
+            "model",
+            { model ->
+                voskModel = model
+            },
+            { exception ->
+                throw exception
+            }
+        )
+    }
+
+    private suspend fun initializeLLM() {
+        withContext(Dispatchers.Main) {
+            displayText = "🧠 Configurando modelo de lenguaje..."
+        }
+        
+        // Obtener chat por defecto
+        currentChat = chatsDB.loadDefaultChat(this@IALiveActivity)
+        
+        // Cargar historial de mensajes existente
+        val existingMessages = messagesDB.getMessagesForModel(currentChat!!.id)
+        conversationHistory = existingMessages.map { message ->
+            ConversationMessage(
+                text = message.message,
+                isUser = message.isUserMessage,
+                timestamp = System.currentTimeMillis()
+            )
+        }
+        
+        withContext(Dispatchers.Main) {
+            displayText = if (conversationHistory.isNotEmpty()) {
+                "📜 Historial cargado (${conversationHistory.size} mensajes)\n\nPresiona para continuar la conversación"
+            } else {
+                "📜 Nueva conversación iniciada\n\nPresiona para comenzar"
+            }
+        }
+        
+        // Verificar si hay modelo configurado
+        if (currentChat?.llmModelId == -1L) {
+            // Necesitamos seleccionar un modelo
+            val availableModels = modelsRepository.getAvailableModelsList()
+            if (availableModels.isNotEmpty()) {
+                currentLLMModel = availableModels.first()
+                currentChat = currentChat?.copy(llmModelId = currentLLMModel!!.id)
+                chatsDB.updateChat(currentChat!!)
+            } else {
+                throw Exception("No hay modelos LLM disponibles. Configura un modelo primero.")
+            }
+        } else {
+            currentLLMModel = modelsRepository.getModelFromId(currentChat!!.llmModelId)
+        }
+        
+        // Cargar el modelo en Orabel
+        currentLLMModel?.let { model ->
+            val modelFile = File(model.path)
+            if (!modelFile.exists()) {
+                throw Exception("Archivo del modelo no encontrado: ${model.path}")
+            }
+            
+            orabeLLMInstance = Orabel()
+            orabeLLMInstance!!.create(
+                model.path,
+                currentChat!!.minP,
+                currentChat!!.temperature,
+                true
+            )
+            
+            // Añadir system prompt si existe
+            if (currentChat!!.systemPrompt.isNotEmpty()) {
+                orabeLLMInstance!!.addSystemPrompt(currentChat!!.systemPrompt)
+            }
+        }
+    }
+
+    private suspend fun initializeTTS() {
+        withContext(Dispatchers.Main) {
+            displayText = "🔊 Configurando síntesis de voz..."
+        }
+        
+        val success = ttsRepository.initializeTts()
+        if (!success) {
+            throw Exception("Error inicializando TTS")
+        }
+        
+        val spanishSet = ttsRepository.setSpanishLanguage()
+        if (!spanishSet) {
+            throw Exception("No se pudo configurar español para TTS")
+        }
+    }
+
+    private fun startConversation() {
+        if (currentState != IALiveState.READY) return
+        
+        currentState = IALiveState.LISTENING
+        isListening = true
+        displayText = "🎤 Toca INICIAR para empezar a grabar..."
+        
+        startManualVoiceRecording()
+        startAudioRecording() // Para guardar el audio
+    }
+    
+    // Nueva función para cuando se presiona el botón
+    private fun startListeningOnPress() {
+        if (currentState != IALiveState.READY) return
+        
+        Log.d("IALive", "Iniciando escucha al presionar botón")
+        
+        // Limpiar texto previo
+        finalRecognizedText = ""
+        
+        currentState = IALiveState.LISTENING
+        isListening = true
+        displayText = "🎤 Escuchando... Habla normalmente"
+        
+        startManualVoiceRecording()
+        startAudioRecording()
+    }
+    
+    // Nueva función para cuando se suelta el botón - COMPLETAMENTE MANUAL
+    private fun stopListeningOnRelease() {
+        if (!isListening) return
+        
+        Log.d("IALive", "Deteniendo escucha - obteniendo texto final MANUAL")
+        
+        // Cambiar estado inmediatamente
+        currentState = IALiveState.PROCESSING_STT
+        displayText = "⏳ Procesando tu mensaje..."
+        
+        // Usar el sistema manual sin callbacks
+        stopManualVoiceRecording()
+    }
+    
+    // Función para obtener el texto final directamente del recognizer
+    private fun getFinalTextFromRecognizer(): String {
+        return try {
+            // Esta función ya no se usa - ahora usamos sistema manual
+            return finalRecognizedText.takeIf { it.isNotEmpty() } ?: ""
+        } catch (e: Exception) {
+            Log.e("IALive", "Error obteniendo texto del recognizer: ${e.message}")
+            return ""
+        }
+    }
+
+    // NUEVA FUNCIÓN: Iniciar grabación MANUAL sin callbacks automáticos
+    private fun startManualVoiceRecording() {
+        voskModel?.let { model ->
+            try {
+                Log.d("IALive", "Iniciando reconocimiento MANUAL")
+                
+                // Crear el reconocedor Vosk
+                voskRecognizer = org.vosk.Recognizer(model, 16000.0f)
+                finalRecognizedText = ""
+                
+                // Configurar AudioRecord para capturar audio
+                val minBufferSize = AudioRecord.getMinBufferSize(
+                    16000,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT
+                )
+                
+                audioRecord = AudioRecord(
+                    AudioSource.MIC,
+                    16000,
+                    AudioFormat.CHANNEL_IN_MONO,
+                    AudioFormat.ENCODING_PCM_16BIT,
+                    minBufferSize
+                )
+                
+                isManualRecording = true
+                audioRecord?.startRecording()
+                
+                // Crear hilo para procesar audio
+                recordingThread = Thread {
+                    val buffer = ShortArray(minBufferSize)
+                    
+                    while (isManualRecording && audioRecord != null) {
+                        val bytesRead = audioRecord!!.read(buffer, 0, buffer.size)
+                        if (bytesRead > 0) {
+                            // Convertir a bytes para Vosk
+                            val audioData = ByteArray(bytesRead * 2)
+                            for (i in 0 until bytesRead) {
+                                audioData[i * 2] = (buffer[i].toInt() and 0xFF).toByte()
+                                audioData[i * 2 + 1] = (buffer[i].toInt() shr 8 and 0xFF).toByte()
+                            }
+                            
+                            // Procesar con Vosk MANUALMENTE
+                            voskRecognizer?.let { recognizer ->
+                                if (recognizer.acceptWaveForm(audioData, audioData.size)) {
+                                    val result = recognizer.result
+                                    val extractedText = extractTextFromVoskJson(result)
+                                    if (extractedText.trim().isNotEmpty()) {
+                                        finalRecognizedText = extractedText.trim()
+                                        
+                                        // Actualizar UI en el hilo principal
+                                        runOnUiThread {
+                                            displayText = "🎤 Escuchando...\n\n\"$finalRecognizedText\""
+                                        }
+                                    }
+                                } else {
+                                    // Resultado parcial
+                                    val partialResult = recognizer.partialResult
+                                    val extractedText = extractTextFromVoskJson(partialResult)
+                                    if (extractedText.trim().isNotEmpty()) {
+                                        runOnUiThread {
+                                            displayText = "🎤 Escuchando...\n\n\"$extractedText\""
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                recordingThread?.start()
+                
+            } catch (e: Exception) {
+                Log.e("IALive", "Error iniciando grabación manual: ${e.message}")
+                currentState = IALiveState.ERROR
+                displayText = "❌ Error iniciando reconocimiento: ${e.message}"
+            }
+        }
+    }
+
+    private fun startAudioRecording() {
+        try {
+            val fileName = "ia_live_${System.currentTimeMillis()}.m4a"
+            val downloadsDir = File(
+                Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                "LyrionVozTexto"
+            )
+            
+            if (!downloadsDir.exists()) {
+                downloadsDir.mkdirs()
+            }
+            
+            val audioFile = File(downloadsDir, fileName)
+            
+            mediaRecorder = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(audioFile.absolutePath)
+                prepare()
+                start()
+            }
+            
+        } catch (e: Exception) {
+            Log.e("IALive", "Error iniciando grabación de audio: ${e.message}")
+        }
+    }
+
+    // NUEVA FUNCIÓN: Parar grabación MANUAL sin callbacks automáticos
+    private fun stopManualVoiceRecording() {
+        try {
+            Log.d("IALive", "Parando reconocimiento MANUAL")
+            
+            isManualRecording = false
+            
+            // Parar AudioRecord
+            audioRecord?.apply {
+                if (recordingState == AudioRecord.RECORDSTATE_RECORDING) {
+                    stop()
+                }
+                release()
+            }
+            audioRecord = null
+            
+            // Esperar que termine el hilo
+            recordingThread?.join(1000)
+            recordingThread = null
+            
+            // Obtener resultado final del reconocedor
+            voskRecognizer?.let { recognizer ->
+                val finalResult = recognizer.finalResult
+                val extractedText = extractTextFromVoskJson(finalResult)
+                if (extractedText.trim().isNotEmpty()) {
+                    finalRecognizedText = extractedText.trim()
+                }
+                recognizer.close()
+            }
+            voskRecognizer = null
+            
+            Log.d("IALive", "Texto final reconocido: '$finalRecognizedText'")
+            
+            // Procesar el texto reconocido SI HAY CONTENIDO
+            if (finalRecognizedText.trim().isNotEmpty()) {
+                processRecognizedText(finalRecognizedText.trim())
+            } else {
+                displayText = "🎤 No se reconoció ningún texto. Toca INICIAR para intentar de nuevo."
+                currentState = IALiveState.LISTENING
+            }
+            
+        } catch (e: Exception) {
+            Log.e("IALive", "Error parando grabación manual: ${e.message}")
+            displayText = "❌ Error parando reconocimiento: ${e.message}"
+            currentState = IALiveState.ERROR
+        }
+    // NUEVA FUNCIÓN: Procesar texto reconocido sin usar callbacks automáticos
+    private fun processRecognizedText(text: String) {
+        Log.d("IALive", "Procesando texto manual: '$text'")
+        
+        // Parar también la grabación de audio
+        stopAudioRecording()
+        
+        // Procesar directamente con el LLM
+        processWithLLM(text)
+    }
+    
+    private fun stopAudioRecording() {
+        isListening = false
+        
+        // Detener grabación de audio
+        try {
+            mediaRecorder?.apply {
+                stop()
+                reset()
+                release()
+            }
+            mediaRecorder = null
+        } catch (e: Exception) {
+            Log.e("IALive", "Error deteniendo grabación: ${e.message}")
+        }
+    }
+
+    private fun processWithLLM(userMessage: String) {
+        currentState = IALiveState.PROCESSING_LLM
+        isProcessingLLM = true
+        displayText = "🧠 Procesando con IA..."
+        
+        // Añadir mensaje del usuario a la conversación
+        conversationHistory = conversationHistory + ConversationMessage(
+            text = userMessage,
+            isUser = true,
+            timestamp = System.currentTimeMillis()
+        )
+        
+        // Guardar mensaje en base de datos
+        currentChat?.let { chat ->
+            messagesDB.addUserMessage(chat.id, userMessage)
+        }
+        
+        llmGenerationJob = CoroutineScope(Dispatchers.Default).launch {
+            try {
+                partialLLMResponse = ""
+                var fullResponse = ""
+                var lastResponse = ""
+                
+                orabeLLMInstance?.getResponse(userMessage)?.collectLatest { partialResponse ->
+                    partialLLMResponse += partialResponse
+                    fullResponse = partialLLMResponse
+                    lastResponse = fullResponse // Mantener siempre la última respuesta
+                    
+                    withContext(Dispatchers.Main) {
+                        displayText = "🧠 IA respondiendo...\n\n$fullResponse"
+                    }
+                }
+                
+                // Respuesta completa generada O detenida
+                orabeLLMInstance?.stopCompletion()
+                
+                withContext(Dispatchers.Main) {
+                    // Usar la última respuesta disponible, aunque esté incompleta
+                    val finalResponse = if (lastResponse.trim().isNotEmpty()) {
+                        lastResponse
+                    } else if (fullResponse.trim().isNotEmpty()) {
+                        fullResponse
+                    } else {
+                        "Lo siento, no pude generar una respuesta completa."
+                    }
+                    
+                    Log.d("IALive", "Respuesta final para TTS: $finalResponse")
+                    
+                    // Añadir respuesta a la conversación
+                    conversationHistory = conversationHistory + ConversationMessage(
+                        text = finalResponse,
+                        isUser = false,
+                        timestamp = System.currentTimeMillis()
+                    )
+                    
+                    // Guardar en base de datos
+                    currentChat?.let { chat ->
+                        messagesDB.addAssistantMessage(chat.id, finalResponse)
+                    }
+                    
+                    isProcessingLLM = false
+                    
+                    // SIEMPRE proceder con TTS, incluso si la respuesta está incompleta
+                    speakResponse(finalResponse)
+                }
+                
+            } catch (e: Exception) {
+                Log.e("IALive", "Error en LLM: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    // Si hay error, pero tenemos respuesta parcial, usarla para TTS
+                    if (partialLLMResponse.trim().isNotEmpty()) {
+                        Log.d("IALive", "Error en LLM pero hay respuesta parcial, usando para TTS: $partialLLMResponse")
+                        
+                        conversationHistory = conversationHistory + ConversationMessage(
+                            text = partialLLMResponse,
+                            isUser = false,
+                            timestamp = System.currentTimeMillis()
+                        )
+                        
+                        currentChat?.let { chat ->
+                            messagesDB.addAssistantMessage(chat.id, partialLLMResponse)
+                        }
+                        
+                        isProcessingLLM = false
+                        speakResponse(partialLLMResponse)
+                    } else {
+                        // Sin respuesta parcial, mostrar error
+                        currentState = IALiveState.ERROR
+                        displayText = "❌ Error procesando con LLM: ${e.message}"
+                        isProcessingLLM = false
+                    }
+                }
+            }
+        }
+    }
+
+    private fun speakResponse(response: String) {
+        currentState = IALiveState.SPEAKING
+        isSpeaking = true
+        displayText = "🔊 Reproduciendo respuesta...\n\n$response"
+        
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val success = ttsRepository.speak(response)
+                withContext(Dispatchers.Main) {
+                    if (success) {
+                        // TTS completado exitosamente
+                        isSpeaking = false
+                        currentState = IALiveState.READY
+                        displayText = "✅ Conversación completada\n\nPresiona el botón para continuar"
+                    } else {
+                        // Error en TTS
+                        isSpeaking = false
+                        currentState = IALiveState.ERROR
+                        displayText = "❌ Error en síntesis de voz"
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    isSpeaking = false
+                    currentState = IALiveState.ERROR
+                    displayText = "❌ Error en síntesis de voz: ${e.message}"
+                }
+            }
+        }
+    }
+
+    private fun stopAllProcesses() {
+        // Si está procesando LLM y hay respuesta parcial, proceder con TTS
+        if (isProcessingLLM && partialLLMResponse.trim().isNotEmpty()) {
+            Log.d("IALive", "Deteniendo LLM pero procediendo con TTS de respuesta parcial: $partialLLMResponse")
+            
+            llmGenerationJob?.cancel()
+            
+            try {
+                orabeLLMInstance?.cancelCompletion()
+            } catch (e: Exception) {
+                Log.e("IALive", "Error cancelando LLM: ${e.message}")
+            }
+            
+            // Proceder con TTS de la respuesta parcial
+            conversationHistory = conversationHistory + ConversationMessage(
+                text = partialLLMResponse,
+                isUser = false,
+                timestamp = System.currentTimeMillis()
+            )
+            
+            currentChat?.let { chat ->
+                messagesDB.addAssistantMessage(chat.id, partialLLMResponse)
+            }
+            
+            isProcessingLLM = false
+            speakResponse(partialLLMResponse)
+            return
+        }
+        
+        // Detener todos los procesos normalmente
+        llmGenerationJob?.cancel()
+        
+        // Detener STT manual
+        stopManualVoiceRecording()
+        
+        // Detener LLM - solo si está cargado
+        try {
+            orabeLLMInstance?.cancelCompletion()
+        } catch (e: Exception) {
+            Log.e("IALive", "Error cancelando LLM: ${e.message}")
+        }
+        
+        // Detener TTS
+        ttsRepository.stop()
+        
+        // Resetear estados
+        isListening = false
+        isProcessingLLM = false
+        isSpeaking = false
+        currentState = IALiveState.READY
+        displayText = "⏹️ Procesos detenidos\n\nPresiona el botón para comenzar de nuevo"
+    }
+
+    private fun showModelSelection() {
+        // TODO: Implementar selección de modelo
+        SafeToast.showSafe(this, "Función de selección de modelo próximamente")
+    }
+
+    // Implementación RecognitionListener para Vosk - COMPLETAMENTE DESACTIVADA
+    override fun onResult(hypothesis: String?) {
+        // NADA - Completamente ignorado
+    }
+
+    // Variable para almacenar el texto reconocido
+    private var recognizedText = ""
+
+    override fun onFinalResult(hypothesis: String?) {
+        // NADA - Completamente ignorado
+    }
+
+    // CALLBACKS DE VOSK - COMPLETAMENTE DESACTIVADOS (ya no se usan)
+    override fun onPartialResult(hypothesis: String?) {
+        // NADA - COMPLETAMENTE DESACTIVADO
+        // YA NO SE USAN CALLBACKS - AHORA ES MANUAL
+        Log.d("IALive", "Callback onPartialResult IGNORADO - usando sistema manual")
+    }
+
+    override fun onResult(hypothesis: String?) {
+        // NADA - COMPLETAMENTE DESACTIVADO  
+        // YA NO SE USAN CALLBACKS - AHORA ES MANUAL
+        Log.d("IALive", "Callback onResult IGNORADO - usando sistema manual")
+    }
+
+    override fun onFinalResult(hypothesis: String?) {
+        // NADA - COMPLETAMENTE DESACTIVADO
+        // YA NO SE USAN CALLBACKS - AHORA ES MANUAL
+        Log.d("IALive", "Callback onFinalResult IGNORADO - usando sistema manual")
+    }
+    
+    // Función para extraer texto del JSON de Vosk - MEJORADA
+    private fun extractTextFromVoskJson(jsonString: String): String {
+        return try {
+            val cleanJson = jsonString.trim()
+            
+            if (cleanJson.startsWith("{") && cleanJson.contains("\"text\"")) {
+                // Es JSON de Vosk, extraer SOLO el campo "text"
+                val regex = "\"text\"\\s*:\\s*\"([^\"]*)\""
+                val matchResult = Regex(regex).find(cleanJson)
+                val extractedText = matchResult?.groupValues?.get(1)?.trim() ?: ""
+                
+                Log.d("IALive", "JSON original: $cleanJson")
+                Log.d("IALive", "Texto extraído: '$extractedText'")
+                
+                return extractedText
+            } else {
+                // No es JSON, devolver tal como está (limpio)
+                return cleanJson
+            }
+        } catch (e: Exception) {
+            Log.e("IALive", "Error extrayendo texto de JSON: ${e.message}")
+            // En caso de error, intentar devolver solo texto plano
+            return jsonString.replace(Regex("[{}\":\\[\\],]"), "").trim()
+        }
+    }
+
+    override fun onError(exception: Exception?) {
+        // NADA - COMPLETAMENTE DESACTIVADO
+        // YA NO SE USAN CALLBACKS - AHORA ES MANUAL  
+        Log.d("IALive", "Callback onError IGNORADO - usando sistema manual")
+    }
+
+    override fun onTimeout() {
+        // NADA - COMPLETAMENTE DESACTIVADO
+        // YA NO SE USAN CALLBACKS - AHORA ES MANUAL
+        Log.d("IALive", "Callback onTimeout IGNORADO - usuario controla la duración manualmente")
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        
+        stopAllProcesses()
+        
+        // Liberar recursos del modelo LLM de forma segura
+        try {
+            orabeLLMInstance?.let { instance ->
+                try {
+                    instance.cancelCompletion()
+                } catch (e: Exception) {
+                    Log.w("IALive", "Error cancelando completion: ${e.message}")
+                }
+                // No llamar close() - causa crash
+                orabeLLMInstance = null
+            }
+        } catch (e: Exception) {
+            Log.e("IALive", "Error liberando Orabel: ${e.message}")
+        }
+        
+        ttsRepository.shutdown()
+    }
+}
+
+// Estados de la aplicación
+enum class IALiveState {
+    IDLE,
+    INITIALIZING,
+    READY,
+    LISTENING,
+    PROCESSING_STT,
+    PROCESSING_LLM,
+    SPEAKING,
+    ERROR
+}
+
+// Modelo para mensajes de conversación
+data class ConversationMessage(
+    val text: String,
+    val isUser: Boolean,
+    val timestamp: Long
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun IALiveScreen(
+    state: IALiveState,
+    displayText: String,
+    conversationHistory: List<ConversationMessage>,
+    isListening: Boolean,
+    isProcessingLLM: Boolean,
+    isSpeaking: Boolean,
+    onStartListening: () -> Unit,
+    onStopListening: () -> Unit,
+    onStopAll: () -> Unit,
+    onBackClick: () -> Unit,
+    onSelectModel: () -> Unit
+) {
+    val listState = rememberLazyListState()
+    
+    // Auto-scroll a los mensajes más recientes
+    LaunchedEffect(conversationHistory.size) {
+        if (conversationHistory.isNotEmpty()) {
+            listState.animateScrollToItem(conversationHistory.size - 1)
+        }
+    }
+    
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        OrabelPrimary.copy(alpha = 0.1f),
+                        OrabelSecondary.copy(alpha = 0.1f),
+                        OrabelAccent.copy(alpha = 0.1f)
+                    )
+                )
+            )
+    ) {
+        // Header
+        TopAppBar(
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "🤖 IA Live",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    // Indicadores de estado
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    AnimatedVisibility(visible = isListening) {
+                        StatusIndicator("🎤", OrabelPrimary)
+                    }
+                    
+                    AnimatedVisibility(visible = isProcessingLLM) {
+                        StatusIndicator("🧠", OrabelSecondary)
+                    }
+                    
+                    AnimatedVisibility(visible = isSpeaking) {
+                        StatusIndicator("🔊", OrabelAccent)
+                    }
+                }
+            },
+            navigationIcon = {
+                IconButton(onClick = onBackClick) {
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
+                }
+            },
+            actions = {
+                IconButton(onClick = onSelectModel) {
+                    Icon(Icons.Default.Settings, contentDescription = "Configuración")
+                }
+            }
+        )
+        
+        // Contenido principal
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .padding(16.dp)
+        ) {
+            if (conversationHistory.isEmpty()) {
+                // Pantalla de estado inicial
+                StatusScreen(
+                    state = state,
+                    displayText = displayText
+                )
+            } else {
+                // Historia de conversación
+                ConversationScreen(
+                    history = conversationHistory,
+                    listState = listState,
+                    currentDisplayText = displayText
+                )
+            }
+        }
+        
+        // Control buttons
+        ControlButtons(
+            state = state,
+            onStartListening = onStartListening,
+            onStopListening = onStopListening,
+            onStopAll = onStopAll
+        )
+    }
+}
+
+@Composable
+fun StatusIndicator(icon: String, color: Color) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 0.8f,
+        targetValue = 1.2f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "scale"
+    )
+    
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .scale(scale)
+            .background(color.copy(alpha = 0.2f), CircleShape),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = icon,
+            fontSize = 12.sp
+        )
+    }
+}
+
+@Composable
+fun StatusScreen(
+    state: IALiveState,
+    displayText: String
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        // Icono de estado
+        val stateIcon = when (state) {
+            IALiveState.IDLE -> "💤"
+            IALiveState.INITIALIZING -> "⚙️"
+            IALiveState.READY -> "✅"
+            IALiveState.LISTENING -> "🎤"
+            IALiveState.PROCESSING_STT -> "⏳"
+            IALiveState.PROCESSING_LLM -> "🧠"
+            IALiveState.SPEAKING -> "🔊"
+            IALiveState.ERROR -> "❌"
+        }
+        
+        Text(
+            text = stateIcon,
+            fontSize = 48.sp,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        Text(
+            text = displayText,
+            fontSize = 16.sp,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onBackground,
+            modifier = Modifier.padding(horizontal = 24.dp)
+        )
+    }
+}
+
+@Composable
+fun ConversationScreen(
+    history: List<ConversationMessage>,
+    listState: LazyListState,
+    currentDisplayText: String
+) {
+    LazyColumn(
+        state = listState,
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        items(history) { message ->
+            MessageBubble(message = message)
+        }
+        
+        // Mostrar texto actual si hay procesamiento en curso
+        if (currentDisplayText.contains("🧠") || currentDisplayText.contains("🔊")) {
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Text(
+                        text = currentDisplayText,
+                        modifier = Modifier.padding(16.dp),
+                        fontSize = 14.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MessageBubble(message: ConversationMessage) {
+    val backgroundColor = if (message.isUser) {
+        OrabelPrimary.copy(alpha = 0.1f)
+    } else {
+        OrabelSecondary.copy(alpha = 0.1f)
+    }
+    
+    val alignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
+    
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = alignment
+    ) {
+        Card(
+            modifier = Modifier.widthIn(max = 280.dp),
+            shape = RoundedCornerShape(
+                topStart = 16.dp,
+                topEnd = 16.dp,
+                bottomStart = if (message.isUser) 16.dp else 4.dp,
+                bottomEnd = if (message.isUser) 4.dp else 16.dp
+            ),
+            colors = CardDefaults.cardColors(
+                containerColor = backgroundColor
+            )
+        ) {
+            Column(
+                modifier = Modifier.padding(12.dp)
+            ) {
+                Text(
+                    text = if (message.isUser) "👤 Tú" else "🤖 IA",
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (message.isUser) OrabelPrimary else OrabelSecondary,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                
+                Text(
+                    text = message.text,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ControlButtons(
+    state: IALiveState,
+    onStartListening: () -> Unit,
+    onStopListening: () -> Unit,
+    onStopAll: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly
+        ) {
+            // Botón principal con un solo clic
+            when (state) {
+                IALiveState.READY -> {
+                    FloatingActionButton(
+                        onClick = onStartListening,
+                        modifier = Modifier.size(64.dp),
+                        containerColor = OrabelPrimary
+                    ) {
+                        Icon(
+                            Icons.Default.Mic,
+                            contentDescription = "Iniciar grabación",
+                            modifier = Modifier.size(32.dp),
+                            tint = Color.White
+                        )
+                    }
+                }
+                
+                IALiveState.LISTENING -> {
+                    FloatingActionButton(
+                        onClick = onStopListening,
+                        modifier = Modifier.size(64.dp),
+                        containerColor = OrabelAccent
+                    ) {
+                        Icon(
+                            Icons.Default.Stop,
+                            contentDescription = "Parar grabación",
+                            modifier = Modifier.size(32.dp),
+                            tint = Color.White
+                        )
+                    }
+                }
+                
+                IALiveState.PROCESSING_STT, IALiveState.PROCESSING_LLM, IALiveState.SPEAKING -> {
+                    FloatingActionButton(
+                        onClick = onStopAll,
+                        modifier = Modifier.size(64.dp),
+                        containerColor = OrabelAccent
+                    ) {
+                        Icon(
+                            Icons.Default.Stop,
+                            contentDescription = "Detener todo",
+                            modifier = Modifier.size(32.dp),
+                            tint = Color.White
+                        )
+                    }
+                }
+                
+                else -> {
+                    // Estados como INITIALIZING, ERROR
+                    FloatingActionButton(
+                        onClick = { /* No action */ },
+                        modifier = Modifier.size(64.dp),
+                        containerColor = Color.Gray
+                    ) {
+                        Icon(
+                            Icons.Default.Mic,
+                            contentDescription = "No disponible",
+                            modifier = Modifier.size(32.dp),
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Estados de la aplicación
+enum class IALiveState {
+    IDLE,
+    INITIALIZING,
+    READY,
+    LISTENING,
+    PROCESSING_STT,
+    PROCESSING_LLM,
+    SPEAKING,
+    RECORDING,
+    ERROR
+}
