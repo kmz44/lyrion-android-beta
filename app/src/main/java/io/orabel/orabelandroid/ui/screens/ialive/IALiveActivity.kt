@@ -3,8 +3,9 @@ package io.orabel.orabelandroid.ui.screens.ialive
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.speech.tts.TextToSpeech
-import android.speech.tts.UtteranceProgressListener
+import android.media.AudioAttributes
+import android.media.AudioFormat
+import android.media.AudioTrack
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,11 +37,17 @@ import io.orabel.orabelandroid.llm.ModelsRepository
 import io.orabel.orabelandroid.ui.components.ModernCard
 import io.orabel.orabelandroid.ui.theme.*
 import io.orabel.orabelandroid.utils.SafeToast
+import com.k2fsa.sherpa.onnx.tts.engine.TtsEngine
+import com.k2fsa.sherpa.onnx.tts.engine.PreferenceHelper
+import com.k2fsa.sherpa.onnx.tts.engine.LangDB
+import com.k2fsa.sherpa.onnx.tts.engine.ManageLanguagesActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.channels.Channel
 import org.json.JSONObject
 import org.koin.android.ext.android.inject
 import org.vosk.LibVosk
@@ -52,7 +59,7 @@ import org.vosk.android.SpeechService
 import java.io.File
 import java.util.Locale
 
-class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.OnInitListener {
+class IALiveActivity : ComponentActivity(), RecognitionListener {
     
     private val orabelPreferences by inject<OrabelPreferences>()
     private val modelsRepository by inject<ModelsRepository>()
@@ -73,10 +80,20 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
     private var llmResponse by mutableStateOf("")
     private var isProcessingLLM by mutableStateOf(false)
     
-    // TTS Integration  
-    private var tts: TextToSpeech? = null
+    // TTS Integration con Sherpa
+    private var ttsTrack: AudioTrack? = null
+    private var ttsSamplesChannel = Channel<FloatArray>()
+    private var ttsStopped: Boolean = false
+    private lateinit var ttsPrefHelper: PreferenceHelper
+    private lateinit var ttsLangDB: LangDB
     private var isTTSReady by mutableStateOf(false)
     private var isSpeaking by mutableStateOf(false)
+
+    // Hotword / manos libres
+    private var hotwordEnabled by mutableStateOf(true)
+    private var startKeyword by mutableStateOf("kevin")
+    private var stopKeyword by mutableStateOf("finaliza")
+    private var isConversationActive by mutableStateOf(false)
     
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -84,6 +101,7 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
         if (isGranted) {
             initializeVosk()
             initializeLLM()
+            initializeSherpaTTS()
         } else {
             errorMessage = "❌ Se requiere permiso de micrófono para funcionar"
             isLoading = false
@@ -94,13 +112,23 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         
-        // Initialize TTS
-        tts = TextToSpeech(this, this)
+        // Inicializar dependencias TTS Sherpa
+        ttsPrefHelper = PreferenceHelper(this)
+        ttsLangDB = LangDB.getInstance(this)
         
         when {
             ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED -> {
+                // Cargar preferencias de hotword
+                hotwordEnabled = orabelPreferences.isHotwordEnabled()
+                startKeyword = orabelPreferences.getStartKeyword()
+                stopKeyword = orabelPreferences.getStopKeyword()
+                if (stopKeyword == "finalisa") {
+                    stopKeyword = "finaliza"
+                    orabelPreferences.setStopKeyword("finaliza")
+                }
                 initializeVosk()
                 initializeLLM()
+                initializeSherpaTTS()
             }
             else -> {
                 requestPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
@@ -125,8 +153,26 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
                     isProcessingLLM = isProcessingLLM,
                     isTTSReady = isTTSReady,
                     isSpeaking = isSpeaking,
+                    hotwordEnabled = hotwordEnabled,
+                    startKeyword = startKeyword,
+                    stopKeyword = stopKeyword,
+                    isConversationActive = isConversationActive,
                     onStartListening = { startListening() },
                     onStopListening = { stopListening() },
+                    onToggleHotword = { 
+                        hotwordEnabled = it
+                        orabelPreferences.setHotwordEnabled(it)
+                    },
+                    onChangeStartKeyword = { 
+                        val v = it.lowercase(Locale.getDefault())
+                        startKeyword = v
+                        orabelPreferences.setStartKeyword(v)
+                    },
+                    onChangeStopKeyword = { 
+                        val v = it.lowercase(Locale.getDefault())
+                        stopKeyword = v
+                        orabelPreferences.setStopKeyword(v)
+                    },
                     onClearText = { 
                         recognizedText = ""
                         partialText = ""
@@ -267,45 +313,125 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
         }
     }
 
-    // TextToSpeech.OnInitListener implementation
-    override fun onInit(status: Int) {
-        if (status == TextToSpeech.SUCCESS) {
-            tts?.let { textToSpeech ->
-                val result = textToSpeech.setLanguage(Locale("es", "ES"))
-                if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    // Fallback to default language if Spanish is not available
-                    textToSpeech.setLanguage(Locale.getDefault())
+    private fun initializeSherpaTTS() {
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                withContext(Dispatchers.Main) { isTTSReady = false }
+                val currentLang = ttsPrefHelper.getCurrentLanguage()
+                if (currentLang.isNullOrEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        isTTSReady = false
+                        SafeToast.show(this@IALiveActivity, "⚠️ No hay modelo TTS instalado. Abre Gestor de idiomas.")
+                        startActivity(android.content.Intent(this@IALiveActivity, ManageLanguagesActivity::class.java))
+                    }
+                    return@launch
                 }
-                
-                // Set TTS parameters for better quality
-                textToSpeech.setSpeechRate(0.9f)
-                textToSpeech.setPitch(1.0f)
-                
-                // Set utterance progress listener
-                textToSpeech.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
-                    override fun onStart(utteranceId: String?) {
-                        isSpeaking = true
+                TtsEngine.createTts(this@IALiveActivity, currentLang)
+                if (TtsEngine.tts == null) {
+                    withContext(Dispatchers.Main) {
+                        isTTSReady = false
+                        SafeToast.show(this@IALiveActivity, "❌ Error cargando modelo TTS")
                     }
-                    
-                    override fun onDone(utteranceId: String?) {
-                        isSpeaking = false
-                    }
-                    
-                    override fun onError(utteranceId: String?) {
-                        isSpeaking = false
-                        SafeToast.show(this@IALiveActivity, "❌ Error en síntesis de voz")
-                    }
-                })
-                
-                isTTSReady = true
-                SafeToast.show(this, "✅ Síntesis de voz lista")
+                    return@launch
+                }
+                initAudioTrackForTts()
+                withContext(Dispatchers.Main) {
+                    isTTSReady = true
+                    SafeToast.show(this@IALiveActivity, "✅ Motor TTS OFFLINE listo")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    isTTSReady = false
+                    SafeToast.show(this@IALiveActivity, "❌ Error inicializando TTS: ${e.message}")
+                }
             }
-        } else {
-            isTTSReady = false
-            SafeToast.show(this, "❌ Error inicializando síntesis de voz")
         }
     }
 
+    private fun initAudioTrackForTts() {
+        val tts = TtsEngine.tts ?: return
+        val sampleRate = tts.sampleRate()
+        val minBuf = AudioTrack.getMinBufferSize(
+            sampleRate,
+            AudioFormat.CHANNEL_OUT_MONO,
+            AudioFormat.ENCODING_PCM_FLOAT
+        )
+        val bufLength = (minBuf * 4).coerceAtLeast(minBuf)
+        val attr = AudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+            .setUsage(AudioAttributes.USAGE_MEDIA)
+            .build()
+        val format = AudioFormat.Builder()
+            .setEncoding(AudioFormat.ENCODING_PCM_FLOAT)
+            .setSampleRate(sampleRate)
+            .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+            .build()
+        ttsTrack = AudioTrack(attr, format, bufLength, AudioTrack.MODE_STREAM, android.media.AudioManager.AUDIO_SESSION_ID_GENERATE)
+        ttsTrack?.play()
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun speakWithSherpa(text: String) {
+        if (!isTTSReady || isSpeaking) return
+        val engine = TtsEngine.tts ?: run {
+            SafeToast.show(this, "❌ Motor TTS no listo")
+            return
+        }
+        ttsStopped = false
+        ttsTrack?.pause()
+        ttsTrack?.flush()
+        ttsTrack?.play()
+        ttsSamplesChannel = Channel()
+
+        // Consumidor de muestras
+        CoroutineScope(Dispatchers.IO).launch {
+            for (samples in ttsSamplesChannel) {
+                ttsTrack?.write(samples, 0, samples.size, AudioTrack.WRITE_BLOCKING)
+            }
+        }
+
+        isSpeaking = true
+        CoroutineScope(Dispatchers.Default).launch {
+            engine.generateWithCallback(
+                text = text,
+                sid = TtsEngine.speakerId,
+                speed = TtsEngine.speed,
+                callback = ::sherpaCallback
+            )
+            withContext(Dispatchers.Main) {
+                isSpeaking = false
+                // Auto-reinicio para nueva pregunta
+                if (isListening) {
+                    recognizedText = ""
+                    partialText = ""
+                    llmResponse = ""
+                    if (hotwordEnabled) {
+                        isConversationActive = false
+                        val hint = if (startKeyword.isNotBlank()) startKeyword else "palabra clave"
+                        SafeToast.show(this@IALiveActivity, "🟢 Di '$hint' para empezar")
+                    } else {
+                        isConversationActive = true
+                        SafeToast.show(this@IALiveActivity, "🎤 Dime tu siguiente pregunta…")
+                    }
+                }
+            }
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun sherpaCallback(samples: FloatArray): Int {
+        return if (!ttsStopped) {
+            val copy = samples.copyOf()
+            CoroutineScope(Dispatchers.IO).launch {
+                if (!ttsSamplesChannel.isClosedForSend) ttsSamplesChannel.send(copy)
+            }
+            1
+        } else {
+            try { ttsTrack?.stop() } catch (_: Exception) {}
+            0
+        }
+    }
+    
     private fun startListening() {
         if (!isInitialized || model == null) {
             SafeToast.show(this, "❌ El modelo de voz no está cargado")
@@ -318,7 +444,21 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
             speechService = SpeechService(recognizer, 16000.0f)
             speechService?.startListening(this)
             isListening = true
-            SafeToast.show(this, "🎤 IA Live - Reconocimiento OFFLINE iniciado")
+            // Preparar flujo según hotword
+            if (hotwordEnabled) {
+                isConversationActive = false
+                recognizedText = ""
+                partialText = ""
+                llmResponse = ""
+                val hint = if (startKeyword.isNotBlank()) startKeyword else "palabra clave"
+                SafeToast.show(this, "🟢 Di '$hint' para empezar")
+            } else {
+                isConversationActive = true
+                recognizedText = ""
+                partialText = ""
+                llmResponse = ""
+                SafeToast.show(this, "🎤 Escuchando tu pregunta…")
+            }
         } catch (e: Exception) {
             SafeToast.show(this, "❌ Error al iniciar reconocimiento: ${e.message}")
         }
@@ -328,6 +468,7 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
         speechService?.stop()
         speechService = null
         isListening = false
+    isConversationActive = false
     }
     
     override fun onDestroy() {
@@ -347,26 +488,48 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
         }
         
         // Clean up TTS
-        tts?.let { textToSpeech ->
-            textToSpeech.stop()
-            textToSpeech.shutdown()
+        ttsTrack?.let { track ->
+            track.stop()
+            track.release()
         }
-        tts = null
+        ttsTrack = null
     }
     
-    // RecognitionListener implementation for OFFLINE Vosk
+    // RecognitionListener implementation for OFFLINE Vosk con Hotword
     override fun onPartialResult(hypothesis: String?) {
-        // Mostrar resultados parciales en tiempo real
         hypothesis?.let { result ->
             try {
                 val jsonResult = JSONObject(result)
                 val partial = jsonResult.optString("partial", "")
                 if (partial.isNotEmpty()) {
-                    partialText = partial
+                    val lower = partial.lowercase(Locale.getDefault())
+                    // Detectar inicio por hotword
+                    if (hotwordEnabled && !isConversationActive && startKeyword.isNotBlank() && lower.contains(startKeyword)) {
+                        isConversationActive = true
+                        recognizedText = ""
+                        partialText = ""
+                        llmResponse = ""
+                        SafeToast.show(this, "🎙️ Escuchando…")
+                        return
+                    }
+                    // Detectar fin por hotword
+                    if (isConversationActive && stopKeyword.isNotBlank() && lower.contains(stopKeyword)) {
+                        val finalQuery = recognizedText.trim()
+                        partialText = ""
+                        isConversationActive = false
+                        if (finalQuery.isNotEmpty() && isLLMLoaded) {
+                            processWithLLM(finalQuery)
+                        }
+                        return
+                    }
+                    // Solo mostrar parcial cuando estamos en conversación activa
+                    if (isConversationActive) {
+                        partialText = partial
+                    } else {
+                        partialText = ""
+                    }
                 }
-            } catch (e: Exception) {
-                // Ignorar errores de parsing JSON
-            }
+            } catch (_: Exception) { }
         }
     }
     
@@ -376,13 +539,37 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
                 val jsonResult = JSONObject(result)
                 val text = jsonResult.optString("text", "")
                 if (text.isNotEmpty()) {
-                    val newText = text.trim()
-                    recognizedText = if (recognizedText.isEmpty()) {
-                        newText
-                    } else {
-                        "$recognizedText $newText"
+                    val lower = text.lowercase(Locale.getDefault())
+                    // Activar conversación si llega hotword en resultado final y estamos esperando
+                    if (hotwordEnabled && !isConversationActive && startKeyword.isNotBlank() && lower.contains(startKeyword)) {
+                        isConversationActive = true
+                        recognizedText = ""
+                        partialText = ""
+                        llmResponse = ""
+                        return
                     }
-                    
+                    // Si estamos activos, acumular texto sin palabras clave de fin
+                    if (isConversationActive) {
+                        var cleaned = text
+                        if (stopKeyword.isNotBlank()) {
+                            val regex = Regex("\\b${Regex.escape(stopKeyword)}\\b", RegexOption.IGNORE_CASE)
+                            cleaned = cleaned.replace(regex, "").trim()
+                        }
+                        val newText = cleaned.trim()
+                        if (newText.isNotEmpty()) {
+                            recognizedText = if (recognizedText.isEmpty()) newText else "$recognizedText $newText"
+                        }
+                        // Si el resultado contiene stopKeyword, finalizar y procesar
+                        if (stopKeyword.isNotBlank() && lower.contains(stopKeyword)) {
+                            partialText = ""
+                            val finalQuery = recognizedText.trim()
+                            isConversationActive = false
+                            if (finalQuery.isNotEmpty() && isLLMLoaded) {
+                                processWithLLM(finalQuery)
+                            }
+                            return
+                        }
+                    }
                     // Limpiar texto parcial
                     partialText = ""
                 }
@@ -394,15 +581,21 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
     
     override fun onFinalResult(hypothesis: String?) {
         onResult(hypothesis)
-        
-        // Procesar con LLM cuando el usuario deje de hablar
         val finalText = recognizedText.trim()
-        if (finalText.isNotEmpty() && isLLMLoaded) {
-            processWithLLM(finalText)
+        if (!hotwordEnabled) {
+            // Modo clásico: procesar siempre al finalizar frase
+            if (finalText.isNotEmpty() && isLLMLoaded) {
+                isConversationActive = false
+                processWithLLM(finalText)
+            }
+        } else if (isConversationActive) {
+            // Con hotword: fallback por pausa natural
+            if (finalText.isNotEmpty() && isLLMLoaded) {
+                isConversationActive = false
+                processWithLLM(finalText)
+            }
         }
-        
         // No parar automáticamente para permitir reconocimiento continuo
-        // stopListening()
     }
     
     private fun processWithLLM(inputText: String) {
@@ -436,7 +629,7 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
                     isProcessingLLM = false
                     val finalResponse = llmResponse.trim()
                     if (finalResponse.isNotEmpty() && isTTSReady) {
-                        speakText(finalResponse)
+                        speakWithSherpa(finalResponse)
                     }
                 }
                 
@@ -445,22 +638,6 @@ class IALiveActivity : ComponentActivity(), RecognitionListener, TextToSpeech.On
                     isProcessingLLM = false
                     SafeToast.show(this@IALiveActivity, "❌ Error procesando con LLM: ${e.message}")
                 }
-            }
-        }
-    }
-    
-    private fun speakText(text: String) {
-        if (!isTTSReady || isSpeaking) return
-        
-        tts?.let { textToSpeech ->
-            val utteranceId = "TTS_${System.currentTimeMillis()}"
-            val params = Bundle().apply {
-                putString(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, utteranceId)
-            }
-            
-            val result = textToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
-            if (result == TextToSpeech.ERROR) {
-                SafeToast.show(this, "❌ Error en síntesis de voz")
             }
         }
     }
@@ -490,8 +667,15 @@ fun IALiveScreen(
     isProcessingLLM: Boolean,
     isTTSReady: Boolean,
     isSpeaking: Boolean,
+    hotwordEnabled: Boolean,
+    startKeyword: String,
+    stopKeyword: String,
+    isConversationActive: Boolean,
     onStartListening: () -> Unit,
     onStopListening: () -> Unit,
+    onToggleHotword: (Boolean) -> Unit,
+    onChangeStartKeyword: (String) -> Unit,
+    onChangeStopKeyword: (String) -> Unit,
     onClearText: () -> Unit,
     onBackClick: () -> Unit
 ) {
@@ -536,6 +720,42 @@ fun IALiveScreen(
                     color = MaterialTheme.colorScheme.primary
                 )
             }
+
+            // Encabezado estilo asistente personal
+            ModernCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isListening) "Tu asistente está atento" else "Tu asistente offline",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        val status = buildString {
+                            append(if (isInitialized) "Voz ✓" else "Voz ••")
+                            append("  |  ")
+                            append(if (isLLMLoaded) "IA ✓" else "IA ••")
+                            append("  |  ")
+                            append(if (isTTSReady) "TTS ✓" else "TTS ••")
+                        }
+                        Text(status, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurface.copy(0.7f))
+                    }
+                    AssistControls(
+                        isListening = isListening,
+                        onStart = onStartListening,
+                        onStop = onStopListening
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
 
             // Estado del sistema
             ModernCard(
@@ -631,7 +851,7 @@ fun IALiveScreen(
                             if (isListening) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "🎤 Escuchando...",
+                                    text = if (hotwordEnabled && !isConversationActive) "🟢 Esperando palabra clave…" else if (isConversationActive) "�️ Escuchando…" else "�🎤 Escuchando…",
                                     fontSize = 14.sp,
                                     color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Medium
@@ -665,44 +885,20 @@ fun IALiveScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Controles
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Button(
-                    onClick = if (isListening) onStopListening else onStartListening,
-                    enabled = isInitialized,
-                    modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isListening) Color.Red else MaterialTheme.colorScheme.primary
-                    )
-                ) {
-                    Icon(
-                        if (isListening) Icons.Default.Stop else Icons.Default.Mic,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        if (isListening) "Parar" else "Iniciar",
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-                
-                OutlinedButton(
-                    onClick = onClearText,
-                    enabled = recognizedText.isNotEmpty(),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Icon(
-                        Icons.Default.Clear,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Limpiar")
-                }
-            }
+            AssistSettings(
+                hotwordEnabled = hotwordEnabled,
+                startKeyword = startKeyword,
+                stopKeyword = stopKeyword,
+                onToggleHotword = onToggleHotword,
+                onChangeStartKeyword = onChangeStartKeyword,
+                onChangeStopKeyword = onChangeStopKeyword,
+                onClearText = onClearText,
+                isInitialized = isInitialized,
+                isListening = isListening,
+                onStart = onStartListening,
+                onStop = onStopListening,
+                recognizedTextNotEmpty = recognizedText.isNotEmpty()
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -951,6 +1147,118 @@ fun IALiveScreen(
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
                         lineHeight = 20.sp
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AssistControls(
+    isListening: Boolean,
+    onStart: () -> Unit,
+    onStop: () -> Unit
+) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val onColor = MaterialTheme.colorScheme.primary
+        val offColor = Color.Red
+        Button(
+            onClick = if (isListening) onStop else onStart,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isListening) offColor else onColor
+            )
+        ) {
+            Icon(
+                if (isListening) Icons.Default.Stop else Icons.Default.Mic,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(if (isListening) "Parar" else "Iniciar")
+        }
+    }
+}
+
+@Composable
+private fun AssistSettings(
+    hotwordEnabled: Boolean,
+    startKeyword: String,
+    stopKeyword: String,
+    onToggleHotword: (Boolean) -> Unit,
+    onChangeStartKeyword: (String) -> Unit,
+    onChangeStopKeyword: (String) -> Unit,
+    onClearText: () -> Unit,
+    isInitialized: Boolean,
+    isListening: Boolean,
+    onStart: () -> Unit,
+    onStop: () -> Unit,
+    recognizedTextNotEmpty: Boolean
+) {
+    ModernCard(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.SettingsVoice, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Modo manos libres", fontWeight = FontWeight.SemiBold)
+                }
+                Switch(checked = hotwordEnabled, onCheckedChange = onToggleHotword)
+            }
+            if (hotwordEnabled) {
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = startKeyword,
+                        onValueChange = onChangeStartKeyword,
+                        label = { Text("Palabra de inicio") },
+                        leadingIcon = { Icon(Icons.Default.PlayArrow, contentDescription = null) },
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = stopKeyword,
+                        onValueChange = onChangeStopKeyword,
+                        label = { Text("Palabra de fin") },
+                        leadingIcon = { Icon(Icons.Default.Stop, contentDescription = null) },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    onClick = if (isListening) onStop else onStart,
+                    enabled = isInitialized,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isListening) Color.Red else MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Icon(
+                        if (isListening) Icons.Default.Stop else Icons.Default.Mic,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(if (isListening) "Parar" else "Iniciar", fontWeight = FontWeight.Medium)
+                }
+
+                OutlinedButton(
+                    onClick = onClearText,
+                    enabled = recognizedTextNotEmpty,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Limpiar")
                 }
             }
         }

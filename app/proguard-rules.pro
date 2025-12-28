@@ -77,6 +77,11 @@
 -keep class android.speech.** { *; }
 -keep class android.speech.tts.** { *; }
 
+# Motor TTS Sherpa ONNX
+-keep class com.k2fsa.sherpa.onnx.** { *; }
+-keep class com.k2fsa.sherpa.onnx.tts.engine.** { *; }
+-dontwarn com.k2fsa.sherpa.onnx.**
+
 # ML Kit Translation
 -keep class com.google.mlkit.** { *; }
 -dontwarn com.google.mlkit.**

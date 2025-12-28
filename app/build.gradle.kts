@@ -6,8 +6,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("com.google.devtools.ksp")
-    kotlin("kapt")
+    id("com.google.devtools.ksp") version "2.0.0-1.0.21"
+    id("io.objectbox") version "4.0.3"
 }
 
 android {
@@ -20,6 +20,7 @@ android {
         targetSdk = 35
         versionCode = 17
         versionName = "1.1.7"
+        multiDexEnabled = true
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
@@ -38,6 +39,16 @@ android {
                 arguments += "-DCMAKE_BUILD_TYPE=Release"
             }
         }
+
+        // Inyectar API key de Gemini desde local.properties (no se comitea)
+        // Agrega en local.properties: GEMINI_API_KEY=tu_api_key
+        val localProps = Properties()
+        val localPropsFile = rootProject.file("local.properties")
+        if (localPropsFile.exists()) {
+            localProps.load(FileInputStream(localPropsFile))
+        }
+        val geminiApiKey = (localProps.getProperty("GEMINI_API_KEY") ?: "").trim()
+        buildConfigField("String", "GEMINI_API_KEY", "\"$geminiApiKey\"")
     }
 
     // Load keystore properties
@@ -105,6 +116,8 @@ android {
     buildFeatures {
         compose = true
         buildConfig = true
+    // Necesario para ManageLanguagesActivity del motor TTS
+    viewBinding = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
@@ -135,10 +148,29 @@ android {
             )
         }
         jniLibs {
+            useLegacyPackaging = true
             excludes += setOf("**/libc++_shared.so", "**/libjsc.so")
         }
     }
-    
+
+    // Usar solo recursos y código locales para el motor TTS
+    sourceSets {
+        getByName("main") {
+            res.srcDirs(
+                file("src/ttsEngineRes"),
+                file("src/main/res")
+            )
+
+            // Usar solo assets locales (espeak-ng-data ya está copiado)
+            assets.srcDirs(
+                file("src/main/assets")
+            )
+
+            java.srcDirs(
+                file("src/main/java")
+            )
+        }
+    }
     applicationVariants.configureEach {
         kotlin.sourceSets {
             getByName(name) {
@@ -229,15 +261,21 @@ dependencies {
 
     implementation(project(":orabel"))
 
+
     // Koin: dependency injection
     implementation(libs.koin.android)
     implementation(libs.koin.annotations)
     implementation(libs.koin.androidx.compose)
     ksp(libs.koin.ksp.compiler)
 
+    // Media3 (ExoPlayer) para reproducción de video
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
+    implementation(libs.androidx.media3.session)
+
     // ObjectBox: on-device NoSQL database
-    debugImplementation("io.objectbox:objectbox-android-objectbrowser:4.0.3")
-    releaseImplementation("io.objectbox:objectbox-android:4.0.3")
+    // debugImplementation("io.objectbox:objectbox-android-objectbrowser:4.0.3")
+    // releaseImplementation("io.objectbox:objectbox-android:4.0.3")
 
     // compose-markdown: Markdown rendering in Compose
     implementation("io.noties.markwon:core:4.6.2")
@@ -247,7 +285,7 @@ dependencies {
     implementation("io.noties.markwon:ext-tasklist:4.6.2")
     implementation("io.noties.markwon:syntax-highlight:4.6.2")
     implementation("io.noties:prism4j:2.0.0")
-    kapt("io.noties:prism4j-bundler:2.0.0")
+
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.4.0")
@@ -260,10 +298,62 @@ dependencies {
     
     // Coroutines for Google Tasks
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     
     // Vosk for OFFLINE speech recognition (without internet)
     implementation("com.alphacephei:vosk-android:0.3.47@aar")
     implementation("net.java.dev.jna:jna:5.13.0@aar")
+
+    // Whisper - Motor de voz a texto avanzado con TensorFlow Lite
+    implementation("org.tensorflow:tensorflow-lite:2.15.0")
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.4")
+    implementation("com.github.gkonovalov.android-vad:webrtc:2.0.9")
+
+    // OkHttp para WebSocket (Gemini Live) + REST API directa
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+
+    // Guava y Reactive Streams (necesarios para otras dependencias)
+    implementation("com.google.guava:guava:31.1-android")
+    implementation("org.reactivestreams:reactive-streams:1.0.4")
+
+    // ZXing para generación de códigos QR
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // CameraX para compartir cámara (análisis de imagen)
+    implementation("androidx.camera:camera-core:1.3.4")
+    implementation("androidx.camera:camera-camera2:1.3.4")
+    implementation("androidx.camera:camera-lifecycle:1.3.4")
+    implementation("androidx.camera:camera-view:1.3.4")
+
+    // Supabase para autenticación con Google
+    implementation(platform("io.github.jan-tennert.supabase:bom:3.0.2"))
+    implementation("io.github.jan-tennert.supabase:postgrest-kt")
+    implementation("io.github.jan-tennert.supabase:auth-kt")
+    implementation("io.github.jan-tennert.supabase:realtime-kt")
+    implementation("io.ktor:ktor-client-android:3.0.1")
+    
+    // Ktor plugins necesarios para Gemini API (COMPLETO)
+    implementation("io.ktor:ktor-client-core:3.0.1")
+    implementation("io.ktor:ktor-client-okhttp:3.0.1") // ENGINE OkHttp para Ktor
+    implementation("io.ktor:ktor-client-content-negotiation:3.0.1")
+    implementation("io.ktor:ktor-serialization-kotlinx-json:3.0.1")
+    implementation("io.ktor:ktor-client-logging:3.0.1") // Plugin Logging
+
+    // Google Calendar API para acceder a eventos del calendario
+    implementation("com.google.api-client:google-api-client-android:2.2.0")
+    implementation("com.google.apis:google-api-services-calendar:v3-rev20230825-2.0.0")
+    implementation("com.google.http-client:google-http-client-gson:1.43.3")
+    
+    // OkHttp y Gson para Google Classroom REST API (sin biblioteca cliente)
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    // Motor TTS Sherpa ONNX y dependencias de soporte (portado desde ttsEngine-master)
+    implementation("com.github.k2-fsa:sherpa-onnx:v1.10.42")
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.9.0")
+    implementation("androidx.preference:preference:1.2.1")
 
     // Test dependencies - SOLO para testing, NO incluidas en release
     testImplementation(libs.junit)
@@ -278,4 +368,4 @@ dependencies {
     // debugImplementation(libs.androidx.ui.test.manifest)
 }
 
-apply(plugin = "io.objectbox")
+

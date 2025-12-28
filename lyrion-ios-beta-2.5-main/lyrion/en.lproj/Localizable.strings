@@ -1,0 +1,129 @@
+/* 
+  Localizable.strings
+  Lyrion
+  English
+*/
+
+// App
+"app.name" = "Lyrion";
+
+// Onboarding
+"onboarding.title" = "Lyrion";
+"onboarding.description" = "Chat with private and local large language models";
+"onboarding.device_not_supported.title" = "Device not supported";
+"onboarding.device_not_supported.message" = "Sorry, Lyrion can only run on devices that support Metal 3.";
+"onboarding.install_model" = "Install model";
+"onboarding.choose_model" = "Choose a model to get started";
+"onboarding.installing" = "Installing";
+"onboarding.download_model" = "Download model";
+
+// Navigation
+"nav.home" = "Home";
+"nav.search" = "Search";
+"nav.chat" = "Chat";
+"nav.calendar" = "Calendar";
+"nav.profile" = "Profile";
+
+// Settings
+"settings.title" = "Settings";
+"settings.appearance" = "Appearance";
+"settings.models" = "Models";
+"settings.chats" = "Chats";
+"settings.version" = "Version";
+"settings.credits" = "Credits";
+"settings.language" = "Language";
+"settings.language.title" = "App Language";
+"settings.language.spanish" = "Español";
+"settings.language.english" = "English";
+
+// Appearance
+"appearance.tint_color" = "Tint Color";
+"appearance.font_design" = "Font Design";
+"appearance.font_size" = "Font Size";
+"appearance.font_width" = "Font Width";
+"appearance.system" = "System";
+"appearance.light" = "Light";
+"appearance.dark" = "Dark";
+
+// Chat
+"chat.placeholder" = "Type a message...";
+"chat.new" = "New chat";
+"chat.delete" = "Delete";
+"chat.cancel" = "Cancel";
+"chat.stop" = "Stop";
+"chat.send" = "Send";
+"chat.empty" = "No conversations";
+"chat.thinking" = "Thinking...";
+
+// Chats List
+"chats.title" = "Chats";
+"chats.new" = "New chat";
+"chats.delete_all" = "Delete all chats";
+"chats.confirm_delete" = "Delete all chats?";
+
+// Models
+"models.title" = "Models";
+"models.download" = "Download";
+"models.downloading" = "Downloading...";
+"models.installed" = "Installed";
+"models.delete" = "Delete model";
+"models.install" = "Install";
+"models.current" = "Current model";
+"models.available" = "Available models";
+"models.switch" = "Switch model";
+
+// Credits
+"credits.title" = "Credits";
+"credits.made_by" = "Made by";
+
+// Common
+"common.done" = "Done";
+"common.cancel" = "Cancel";
+"common.delete" = "Delete";
+"common.save" = "Save";
+"common.ok" = "OK";
+"common.yes" = "Yes";
+"common.no" = "No";
+
+// Onboarding - Install Model
+"onboarding.install.title" = "Install a model";
+"onboarding.install.description" = "Select from models that are optimized for Apple Silicon";
+"onboarding.install.installed" = "Installed";
+"onboarding.install.suggested" = "Suggested";
+"onboarding.install.other" = "Other";
+"onboarding.install.button" = "Install";
+
+// Onboarding - Downloading
+"onboarding.downloading.installing" = "Installing";
+"onboarding.downloading.installed" = "Installed";
+"onboarding.downloading.title" = "Sit back and relax";
+"onboarding.downloading.wait" = "Keep this screen open and wait for the installation to complete.";
+
+// Chat List
+"chatlist.untitled" = "Untitled";
+"chatlist.delete" = "Delete";
+"chatlist.no_chats" = "No chats yet";
+"chatlist.no_results" = "No results";
+"chatlist.search" = "Search";
+"chatlist.new" = "New";
+
+// Conversation
+"conversation.thinking" = "thinking...";
+"conversation.thought_for" = "thought for";
+
+// Models Settings
+"models.install_model" = "Install a model";
+
+// Appearance Settings
+"appearance.color" = "Color";
+"appearance.font" = "Font";
+"appearance.design" = "Design";
+"appearance.width" = "Width";
+"appearance.size" = "Size";
+
+// Chats Settings
+"chats.system_prompt" = "System prompt";
+"chats.haptics" = "Haptics";
+
+// Other
+"message.placeholder" = "Message";

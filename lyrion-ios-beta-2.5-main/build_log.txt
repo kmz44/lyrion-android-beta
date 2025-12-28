@@ -1,0 +1,318 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild -scheme lyrion -destination generic/platform=iOS build
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  swift-markdown-ui: https://github.com/gonzalezreal/swift-markdown-ui @ 2.4.1
+  Jinja: https://github.com/huggingface/swift-jinja.git @ 2.1.0
+  swift-transformers: https://github.com/huggingface/swift-transformers.git @ 1.1.1
+  mlx-swift: https://github.com/ml-explore/mlx-swift @ 0.29.1
+  Gzip: https://github.com/1024jp/GzipSwift @ 6.0.1
+  swift-collections: https://github.com/apple/swift-collections.git @ 1.3.0
+  cmark-gfm: https://github.com/swiftlang/swift-cmark @ 0.7.1
+  swift-numerics: https://github.com/apple/swift-numerics @ 1.1.1
+  NetworkImage: https://github.com/gonzalezreal/NetworkImage @ 6.0.1
+  mlx-libraries: https://github.com/ml-explore/mlx-swift-examples/ @ main (f156eda)
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (45 targets)
+    Target 'lyrion' in project 'lyrion'
+        ➜ Explicit dependency on target 'MLXLLM' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLXLMCommon' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLXVLM' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'MarkdownUI' in project 'swift-markdown-ui'
+    Target 'MarkdownUI' in project 'swift-markdown-ui'
+        ➜ Explicit dependency on target 'MarkdownUI' in project 'swift-markdown-ui'
+        ➜ Explicit dependency on target 'cmark-gfm' in project 'cmark-gfm'
+        ➜ Explicit dependency on target 'cmark-gfm-extensions' in project 'cmark-gfm'
+        ➜ Explicit dependency on target 'NetworkImage' in project 'NetworkImage'
+    Target 'MarkdownUI' in project 'swift-markdown-ui'
+        ➜ Explicit dependency on target 'cmark-gfm' in project 'cmark-gfm'
+        ➜ Explicit dependency on target 'cmark-gfm-extensions' in project 'cmark-gfm'
+        ➜ Explicit dependency on target 'NetworkImage' in project 'NetworkImage'
+    Target 'NetworkImage' in project 'NetworkImage'
+        ➜ Explicit dependency on target 'NetworkImage' in project 'NetworkImage'
+    Target 'NetworkImage' in project 'NetworkImage' (no dependencies)
+    Target 'cmark-gfm-extensions' in project 'cmark-gfm'
+        ➜ Explicit dependency on target 'cmark-gfm-extensions' in project 'cmark-gfm'
+        ➜ Explicit dependency on target 'cmark-gfm' in project 'cmark-gfm'
+    Target 'cmark-gfm-extensions' in project 'cmark-gfm'
+        ➜ Explicit dependency on target 'cmark-gfm' in project 'cmark-gfm'
+    Target 'cmark-gfm' in project 'cmark-gfm'
+        ➜ Explicit dependency on target 'cmark-gfm' in project 'cmark-gfm'
+    Target 'cmark-gfm' in project 'cmark-gfm' (no dependencies)
+    Target 'MLXVLM' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLXVLM' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLXLMCommon' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXOptimizers' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXLinalg' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'MLXFast' in project 'mlx-swift'
+    Target 'MLXVLM' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLXLMCommon' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXOptimizers' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXLinalg' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'MLXFast' in project 'mlx-swift'
+    Target 'MLXLMCommon' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLXLMCommon' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXOptimizers' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXLinalg' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+    Target 'MLXLLM' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLXLLM' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLXLMCommon' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXOptimizers' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXLinalg' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'MLXFast' in project 'mlx-swift'
+    Target 'MLXLLM' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLXLMCommon' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXOptimizers' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXLinalg' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'MLXFast' in project 'mlx-swift'
+    Target 'MLXFast' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXFast' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLXLMCommon' in project 'mlx-libraries'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXOptimizers' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXLinalg' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Transformers' in project 'swift-transformers'
+    Target 'Transformers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Generation' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Models' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Models' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Generation' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Generation' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Tokenizers' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'swift-transformers_Hub' in project 'swift-transformers'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+    Target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+    Target 'Jinja' in project 'Jinja'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+    Target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'InternalCollectionsUtilities' in project 'swift-collections'
+    Target 'OrderedCollections' in project 'swift-collections'
+        ➜ Explicit dependency on target 'InternalCollectionsUtilities' in project 'swift-collections'
+    Target 'InternalCollectionsUtilities' in project 'swift-collections' (no dependencies)
+    Target 'swift-transformers_Hub' in project 'swift-transformers' (no dependencies)
+    Target 'MLXLinalg' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXLinalg' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLXLinalg' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLXOptimizers' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXOptimizers' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXFast' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLXOptimizers' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXFast' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXFast' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLXNN' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLXFast' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLXFast' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLXRandom' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'MLX' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+    Target 'Numerics' in project 'swift-numerics'
+        ➜ Explicit dependency on target 'Numerics' in project 'swift-numerics'
+        ➜ Explicit dependency on target '_NumericsShims' in project 'swift-numerics'
+        ➜ Explicit dependency on target 'RealModule' in project 'swift-numerics'
+        ➜ Explicit dependency on target 'ComplexModule' in project 'swift-numerics'
+    Target 'Numerics' in project 'swift-numerics'
+        ➜ Explicit dependency on target '_NumericsShims' in project 'swift-numerics'
+        ➜ Explicit dependency on target 'RealModule' in project 'swift-numerics'
+        ➜ Explicit dependency on target 'ComplexModule' in project 'swift-numerics'
+    Target 'ComplexModule' in project 'swift-numerics'
+        ➜ Explicit dependency on target '_NumericsShims' in project 'swift-numerics'
+        ➜ Explicit dependency on target 'RealModule' in project 'swift-numerics'
+    Target 'RealModule' in project 'swift-numerics'
+        ➜ Explicit dependency on target '_NumericsShims' in project 'swift-numerics'
+    Target '_NumericsShims' in project 'swift-numerics' (no dependencies)
+    Target 'Cmlx' in project 'mlx-swift'
+        ➜ Explicit dependency on target 'mlx-swift_Cmlx' in project 'mlx-swift'
+    Target 'mlx-swift_Cmlx' in project 'mlx-swift' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -x objective-c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/usr/Documents/carpeta sin título/lyrion ia/lyrion/Preview Content/Preview Assets.xcassets /Users/usr/Documents/carpeta sin título/lyrion ia/lyrion/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+ExecuteExternalTool /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -arch arm64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -x c++ -c /dev/null
+
+ReadFileContents /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/share/docc/features.json
+
+Build description signature: 95d1ad2cc5e826b37e19490ef5d75e9b
+Build description path: /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/XCBuildData/95d1ad2cc5e826b37e19490ef5d75e9b.xcbuilddata
+ClangStatCache /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk /Users/usr/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-3885c01c3e6b6a337905948deab2002e81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache
+    cd /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion.xcodeproj
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -o /Users/usr/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-3885c01c3e6b6a337905948deab2002e81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache
+
+ProcessInfoPlistFile /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/swift-transformers_Hub.bundle/Info.plist /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/swift-transformers.build/Debug-iphoneos/swift-transformers_Hub.build/empty-swift-transformers_Hub.plist (in target 'swift-transformers_Hub' from project 'swift-transformers')
+    cd /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/swift-transformers
+    builtin-infoPlistUtility /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/swift-transformers.build/Debug-iphoneos/swift-transformers_Hub.build/empty-swift-transformers_Hub.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphoneos -requiredArchitecture arm64 -o /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/swift-transformers_Hub.bundle/Info.plist
+
+ProcessInfoPlistFile /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/mlx-swift_Cmlx.bundle/Info.plist /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/mlx-swift.build/Debug-iphoneos/mlx-swift_Cmlx.build/empty-mlx-swift_Cmlx.plist (in target 'mlx-swift_Cmlx' from project 'mlx-swift')
+    cd /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/mlx-swift
+    builtin-infoPlistUtility /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/mlx-swift.build/Debug-iphoneos/mlx-swift_Cmlx.build/empty-mlx-swift_Cmlx.plist -producttype com.apple.product-type.bundle -expandbuildsettings -format binary -platform iphoneos -requiredArchitecture arm64 -o /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/mlx-swift_Cmlx.bundle/Info.plist
+
+ProcessProductPackaging /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/lyrion.entitlements /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion.app.xcent (in target 'lyrion' from project 'lyrion')
+    cd /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia
+    
+    Entitlements:
+    
+    {
+    "application-identifier" = "5CCLC2Q4B3.com.kevinmarquez.lyrion";
+    "com.apple.developer.kernel.increased-memory-limit" = 1;
+    "com.apple.developer.team-identifier" = 5CCLC2Q4B3;
+    "get-task-allow" = 1;
+}
+    
+    builtin-productPackagingUtility /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/lyrion.entitlements -entitlements -format xml -o /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion.app.xcent
+
+ProcessProductPackagingDER /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion.app.xcent /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion.app.xcent.der (in target 'lyrion' from project 'lyrion')
+    cd /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia
+    /usr/bin/derq query -f xml -i /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion.app.xcent -o /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion.app.xcent.der --raw
+
+SwiftDriver lyrion normal arm64 com.apple.xcode.tools.swift.compiler (in target 'lyrion' from project 'lyrion')
+    cd /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia
+    builtin-SwiftDriver -- /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name lyrion -Onone -enforce-exclusivity\=checked @/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/lyrion.SwiftFileList -DDEBUG -enable-bare-slash-regex -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -target arm64-apple-ios17.6 -g -module-cache-path /Users/usr/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Index.noindex/DataStore -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -swift-version 5 -I /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos -emit-localized-strings -emit-localized-strings-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64 -c -j8 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/usr/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-3885c01c3e6b6a337905948deab2002e81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache -output-file-map /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/lyrion-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -explicit-module-build -module-cache-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -clang-scanner-module-cache-path /Users/usr/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -sdk-module-cache-path /Users/usr/Library/Developer/Xcode/DerivedData/ModuleCache.noindex -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/lyrion.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/usr/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/swift-overrides.hmap -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/lyrion_const_extract_protocols.json -Xcc -iquote -Xcc /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion-generated-files.hmap -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion-own-target-headers.hmap -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion-b43c358b899660089bb45be84bb30066-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion-project-headers.hmap -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/swift-numerics/Sources/_NumericsShims/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/mlx-swift/Source/Cmlx/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/swift-cmark/src/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/swift-cmark/extensions/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/DerivedSources-normal/arm64 -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/DerivedSources/arm64 -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/DerivedSources -Xcc -DDEBUG\=1 -emit-objc-header -emit-objc-header-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/lyrion-Swift.h -working-directory /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia -experimental-emit-module-separately -disable-cmo
+
+CompileAssetCatalogVariant thinned /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/lyrion.app /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Preview\ Content/Preview\ Assets.xcassets /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Assets.xcassets (in target 'lyrion' from project 'lyrion')
+    cd /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia
+    /Applications/Xcode.app/Contents/Developer/usr/bin/actool /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Preview\ Content/Preview\ Assets.xcassets /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Assets.xcassets --compile /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --accent-color AccentColor --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 17.6 --platform iphoneos
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ lyrion (in target 'lyrion' from project 'lyrion')
+EmitSwiftModule normal arm64 (in target 'lyrion' from project 'lyrion')
+    cd /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia
+    
+
+SwiftCompile normal arm64 Compiling\ CommentsSheetView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/CommentsSheetView.swift (in target 'lyrion' from project 'lyrion')
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Models/Data.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Models/DeviceStat.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Models/LiquidGlassModels.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Models/LLMEvaluator.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Models/Models.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Models/RequestLLMIntent.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Models/UserAttribute.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Models/UserProfile.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Calendar/CreateEventSheet.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Chat/ChatsListView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Chat/ChatView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Chat/ConversationView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Groups/CreateGroupView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Groups/GroupDetailView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Groups/GroupListView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Onboarding/DeviceNotSupportedView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Onboarding/MoonAnimationView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Onboarding/OnboardingDownloadingModelProgressView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Onboarding/OnboardingInstallModelView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Onboarding/OnboardingView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Onboarding/UserOnboardingView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Settings/AppearanceSettingsView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Settings/ChatsSettingsView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Settings/CreditsView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Settings/EditChatView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Settings/EditProfileView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Settings/ImportCustomModelView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Settings/LanguageSettingsView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Settings/ModelsSettingsView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/Settings/SettingsView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/AvatarView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/CachedAsyncImage.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/CameraBackground.swift -primary-file /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/CommentsSheetView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/CreatePostView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/CustomTabBar.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/HistoryView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/HomeAISettingsView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/HomeStyleView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/HomeView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/LoginView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/MainTabView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/PostDetailView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/ProfileView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/ReelsView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/SearchView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/SocialComponents.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/SocialFeedView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/StoryUploadView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/StoryViewer.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/UserAttributesView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/UserDataView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/UserProfileView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/VoiceSettingsView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/AuthManager.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/CacheManager.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/CalendarManager.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/ColorExtensions.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/ContentView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/GoogleCalendarService.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/LanguageManager.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/LyrionIAApp.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/LyrionTheme.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/SupabaseClient.swift /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/DerivedSources/GeneratedAssetSymbols.swift -emit-dependencies-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/CommentsSheetView.d -emit-const-values-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/CommentsSheetView.swiftconstvalues -emit-reference-dependencies-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/CommentsSheetView.swiftdeps -serialize-diagnostics-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/CommentsSheetView.dia -emit-localized-strings -emit-localized-strings-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64 -target arm64-apple-ios17.6 -module-can-import-version DeveloperToolsSupport 23.0.4 23.0.4 -module-can-import-version SwiftUI 7.0.84.1 7.0.84 -module-can-import-version UIKit 9088.1.113 9088.1.113 -disable-cross-import-overlay-search -swift-module-cross-import AVKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/AVKit.framework/Modules/AVKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import AVKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/AVKit.framework/Modules/AVKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import AppIntents /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/AppIntents.framework/Modules/AppIntents.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import AppIntents /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/AppIntents.framework/Modules/AppIntents.swiftcrossimport/UIKit.swiftoverlay -swift-module-cross-import AppIntents /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/AppIntents.framework/Modules/AppIntents.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import AppIntents /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/AppIntents.framework/Modules/AppIntents.swiftcrossimport/UIKit.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/WidgetKit.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import PhotosUI /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/PhotosUI.framework/Modules/PhotosUI.swiftcrossimport/WidgetKit.swiftoverlay -swift-module-cross-import RelevanceKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/RelevanceKit.framework/Modules/RelevanceKit.swiftcrossimport/MapKit.swiftoverlay -swift-module-cross-import RelevanceKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/RelevanceKit.framework/Modules/RelevanceKit.swiftcrossimport/MapKit.swiftoverlay -swift-module-cross-import StoreKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Library/Frameworks/StoreKit.framework/Modules/StoreKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import StoreKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/StoreKit.framework/Modules/StoreKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import SwiftData /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftData.framework/Modules/SwiftData.swiftcrossimport/CoreData.swiftoverlay -swift-module-cross-import SwiftData /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftData.framework/Modules/SwiftData.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import WebKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS.sdk/System/Cryptexes/OS/System/Library/Frameworks/WebKit.framework/Modules/WebKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import WebKit /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WebKit.framework/Modules/WebKit.swiftcrossimport/SwiftUI.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libAppIntentsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#AppIntentsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftDataMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftDataMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/lib/swift/host/plugins/libTipKitMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/swift-plugin-server\#TipKitMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/lyrion-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk -I /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/PackageFrameworks -F /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=4 -module-cache-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/SwiftExplicitPrecompiledModules -swift-version 5 -enforce-exclusivity\=checked -Onone -D DEBUG -serialize-debugging-options -const-gather-protocols-file /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/lyrion_const_extract_protocols.json -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/usr/Library/Developer/Xcode/DerivedData/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia -enable-anonymous-context-mangled-names -file-compilation-dir /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/usr/Library/Developer/Xcode/DerivedData/SDKStatCaches.noindex/iphoneos26.0-23A339-3885c01c3e6b6a337905948deab2002e81ce72e5b06c9602b9d30b56f2eed08a.sdkstatcache -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/swift-overrides.hmap -Xcc -iquote -Xcc /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion-generated-files.hmap -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion-own-target-headers.hmap -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion-all-non-framework-target-headers.hmap -Xcc -ivfsoverlay -Xcc /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion-b43c358b899660089bb45be84bb30066-VFS-iphoneos/all-product-headers.yaml -Xcc -iquote -Xcc /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/lyrion-project-headers.hmap -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/swift-numerics/Sources/_NumericsShims/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/mlx-swift/Source/Cmlx/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/swift-cmark/src/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/SourcePackages/checkouts/swift-cmark/extensions/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Products/Debug-iphoneos/include -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/DerivedSources-normal/arm64 -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/DerivedSources/arm64 -Xcc -I/Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/DerivedSources -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name lyrion -frontend-parseable-output -disable-clang-spi -target-sdk-version 26.0 -target-sdk-name iphoneos26.0 -clang-target arm64-apple-ios26.0 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -o /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Build/Intermediates.noindex/lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/CommentsSheetView.o -index-unit-output-path /lyrion.build/Debug-iphoneos/lyrion.build/Objects-normal/arm64/CommentsSheetView.o -index-store-path /Users/usr/Library/Developer/Xcode/DerivedData/lyrion-glmheyekmrcejwaiaeymoedktmzv/Index.noindex/DataStore -index-system-modules
+
+SwiftCompile normal arm64 /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/CommentsSheetView.swift (in target 'lyrion' from project 'lyrion')
+    cd /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia
+    
+/Users/usr/Documents/carpeta sin título/lyrion ia/lyrion/Views/CommentsSheetView.swift:94:13: warning: initialization of variable 'roots' was never used; consider replacing with assignment to '_' or removing it
+        var roots = [CommentNode]()
+        ~~~~^~~~~
+        _
+/Users/usr/Documents/carpeta sin título/lyrion ia/lyrion/Views/CommentsSheetView.swift:216:24: warning: value 'currentUser' was defined but never used; consider replacing with boolean test
+                if let currentUser = SupabaseClient.shared.loadSession()?.user {
+                   ~~~~^~~~~~~~~~~~~~
+                   (                                                          ) != nil
+/Users/usr/Documents/carpeta sin título/lyrion ia/lyrion/Views/CommentsSheetView.swift:353:28: error: initializer for conditional binding must have Optional type, not 'Date'
+                        if let createdAt = comment.created_at {
+                           ^               ~~~~~~~~~~~~~~~~~~
+
+** BUILD FAILED **
+
+
+The following build commands failed:
+	SwiftCompile normal arm64 Compiling\ CommentsSheetView.swift /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/CommentsSheetView.swift (in target 'lyrion' from project 'lyrion')
+	SwiftCompile normal arm64 /Users/usr/Documents/carpeta\ sin\ título/lyrion\ ia/lyrion/Views/CommentsSheetView.swift (in target 'lyrion' from project 'lyrion')
+	Building project lyrion with scheme lyrion
+(3 failures)

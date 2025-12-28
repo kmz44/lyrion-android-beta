@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="download_failed">Descarga fallida</string>
     <!-- App name -->
     <string name="app_name">Lyrion IA</string>
     
@@ -213,4 +214,36 @@
     <string name="coming_soon">Coming Soon</string>
     <string name="login_coming_soon">Login feature coming soon</string>
     <string name="about_lyrion_content">Lyrion is your personal AI assistant powered by advanced language models. Chat, learn, and explore with AI in a private &amp; secure environment.</string>
+
+    <!-- Integración Sherpa TTS engine -->
+    <string name="sherpa_tts_engine_name">ttsEngine-master</string>
+    <string name="start_main">START</string>
+
+    <string name="download_language">Download language</string>
+    <string name="test_languages">Try models</string>
+    <string name="one_model_per_language">Only 1 model per language!</string>
+    <string name="piper_models">Piper models</string>
+    <string name="coqui_models">Coqui models</string>
+
+        <!-- TTS Engine Strings (importados de ttsEngine-master) -->
+        <string name="play">Play</string>
+        <string name="stop">Stop</string>
+        <string name="speed">Speed</string>
+        <string name="speaker_id">Speaker ID:</string>
+        <string name="language_id">Language	</string>
+        <string name="input">Text to generate</string>
+        <string name="add_language">Add language</string>
+        <string name="delete_language">Delete language</string>
+        <string name="apply_system_speed">Apply system settings (speed / pitch) for use as system-wide TTS engine</string>
+        <string name="volume">Volume</string>
+        <string name="error_download">Download error</string>
+        <string name="dialog_StarOnGitHub">Do you like this app? Please give a star on GitHub or buy the developer a coffee via PayPal.</string>
+        <string name="dialog_Later_button">Maybe later</string>
+
+        <!-- Defaults for TTS progress/status -->
+        <string name="downloading_model">Downloading model…</string>
+        <string name="loading_tts_model">Loading the TTS model…</string>
+        <string name="model_ready_tts">TTS model ready!</string>
+        <string name="setting_up_tts">Setting up the voice engine…</string>
+
 </resources>

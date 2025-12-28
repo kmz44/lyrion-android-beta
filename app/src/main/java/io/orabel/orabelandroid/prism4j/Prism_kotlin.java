@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.shubham0204.smollmandroid.prism4j;
+package io.orabel.orabelandroid.prism4j;
 
 import static java.util.regex.Pattern.compile;
 import static io.noties.prism4j.Prism4j.grammar;

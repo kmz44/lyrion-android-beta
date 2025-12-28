@@ -1,0 +1,113 @@
+/*
+ * =============================================
+ * GUÍA DE CONEXIÓN - MÓDULO BLUETOOTH HC-05/HC-06
+ * =============================================
+ * 
+ * CONEXIÓN DEL BLUETOOTH AL ARDUINO NANO:
+ * 
+ * HC-05/HC-06    →    Arduino Nano
+ * ------------        ------------
+ * VCC (5V)       →    5V
+ * GND            →    GND
+ * TXD            →    RX (D0)
+ * RXD            →    TX (D1)
+ * 
+ * NOTA IMPORTANTE:
+ * - Para programar el Arduino, DESCONECTA el módulo Bluetooth
+ * - El Bluetooth usa los mismos pines que el USB (Serial)
+ * - Reconecta el Bluetooth después de subir el código
+ * 
+ * ALTERNATIVA (usar SoftwareSerial):
+ * Si quieres mantener conectado el Bluetooth mientras programas,
+ * usa pines digitales alternativos con SoftwareSerial
+ * (por ejemplo D2=RX, D3=TX)
+ * 
+ * =============================================
+ * CONFIGURACIÓN DEL MÓDULO BLUETOOTH
+ * =============================================
+ * 
+ * VALORES POR DEFECTO HC-05/HC-06:
+ * - Nombre: HC-05 o HC-06
+ * - PIN: 1234 o 0000
+ * - Velocidad: 9600 baudios
+ * 
+ * EMPAREJAR CON MÓVIL:
+ * 1. Sube el código al Arduino
+ * 2. Conecta el módulo Bluetooth
+ * 3. Alimenta el Arduino (USB o batería)
+ * 4. En tu móvil, busca dispositivos Bluetooth
+ * 5. Conecta a "HC-05" o "HC-06"
+ * 6. Introduce PIN: 1234 o 0000
+ * 
+ * =============================================
+ * APPS RECOMENDADAS PARA ANDROID:
+ * =============================================
+ * 
+ * 1. "Bluetooth RC Controller" (Recomendada)
+ *    - https://play.google.com/store/apps/details?id=braulio.calle.bluetoothRCcontroller
+ *    - Configuración simple
+ *    - Botones personalizables
+ * 
+ * 2. "Arduino Bluetooth Controller"
+ *    - Interfaz simple
+ *    - Envía caracteres individuales
+ * 
+ * 3. "Serial Bluetooth Terminal"
+ *    - Para debugging
+ *    - Ver respuestas del Arduino
+ * 
+ * =============================================
+ * CONFIGURACIÓN DE LA APP "Bluetooth RC Controller":
+ * =============================================
+ * 
+ * En la app, configura los botones:
+ * 
+ * Botón Arriba      →  Enviar: A
+ * Botón Abajo       →  Enviar: R
+ * Botón Izquierda   →  Enviar: I
+ * Botón Derecha     →  Enviar: D
+ * Botón Stop        →  Enviar: P
+ * 
+ * Para velocidad lenta, puedes agregar botones que envíen:
+ * a, r, i, d (minúsculas)
+ * 
+ * =============================================
+ * COMANDOS DEL ROBOT:
+ * =============================================
+ * 
+ * MAYÚSCULAS = VELOCIDAD ALTA (255)
+ * minúsculas = velocidad baja (150)
+ * 
+ * A / a  →  Avanzar
+ * R / r  →  Retroceder
+ * I / i  →  Girar Izquierda
+ * D / d  →  Girar Derecha
+ * P / p  →  Parar
+ * T / t  →  Test de motores
+ * M / m  →  Toggle debug
+ * ?      →  Ayuda
+ * 
+ * =============================================
+ * SOLUCIÓN DE PROBLEMAS:
+ * =============================================
+ * 
+ * Problema: No puedo subir el código
+ * Solución: Desconecta el módulo Bluetooth (pines TX/RX)
+ * 
+ * Problema: No encuentra el Bluetooth
+ * Solución: Verifica que el LED del módulo parpadea
+ *           Alimentación debe ser 5V
+ * 
+ * Problema: Se conecta pero no responde
+ * Solución: Verifica baudios en Serial.begin(9600)
+ *           Verifica que TXD → RX y RXD → TX
+ * 
+ * Problema: Robot se mueve solo
+ * Solución: App enviando comandos continuos
+ *           Aumenta TIMEOUT_STOP en el código
+ * 
+ * =============================================
+ */
+
+// NO ES UN SKETCH EJECUTABLE
+// Este es solo un archivo de referencia

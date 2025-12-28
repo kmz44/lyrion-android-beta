@@ -5,11 +5,18 @@
 
 package io.orabel.orabelandroid.ui.screens.welcome
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -53,7 +60,9 @@ import io.orabel.orabelandroid.R
 import io.orabel.orabelandroid.ui.screens.model_setup.ModernModelSetupActivity
 import io.orabel.orabelandroid.ui.screens.chat.ChatActivity
 import io.orabel.orabelandroid.ui.screens.main.ModernMainActivity
+import io.orabel.orabelandroid.ui.screens.profile.ProfileActivity
 import io.orabel.orabelandroid.ui.screens.settings.SettingsActivity
+import io.orabel.orabelandroid.ui.screens.search.SearchActivity
 import io.orabel.orabelandroid.ui.theme.*
 import io.orabel.orabelandroid.ui.components.*
 import io.orabel.orabelandroid.utils.NetworkUtils
@@ -64,9 +73,44 @@ class WelcomeActivity : ComponentActivity() {
     
     private val orabelPreferences by inject<OrabelPreferences>()
     
+    // Contador de permisos pendientes
+    private var permissionsPending = mutableStateOf(0)
+    private var allPermissionsGranted = mutableStateOf(false)
+    
+    // Launcher para permisos múltiples
+    private val requestMultiplePermissions = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.all { it.value }
+        if (allGranted) {
+            allPermissionsGranted.value = true
+            Toast.makeText(this, "✅ Todos los permisos concedidos", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(this, "⚠️ Algunos permisos fueron denegados. La app funcionará con limitaciones.", Toast.LENGTH_LONG).show()
+        }
+        permissionsPending.value = 0
+    }
+    
+    // Launcher para SYSTEM_ALERT_WINDOW (requiere intent especial)
+    private val requestOverlayPermission = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (Settings.canDrawOverlays(this)) {
+                allPermissionsGranted.value = true
+                Toast.makeText(this, "✅ Permiso de superposición concedido", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "⚠️ Permiso de superposición denegado. Gemini Live no funcionará con pantalla bloqueada.", Toast.LENGTH_LONG).show()
+            }
+        }
+        permissionsPending.value--
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        // NO solicitar permisos automáticamente - se solicitarán cuando el usuario use la app
         
         setContentView(ComposeView(this).apply {
             setContent {
@@ -81,7 +125,8 @@ class WelcomeActivity : ComponentActivity() {
                         onMoreInfoClick = { openMoreInformation() },
                         onNavigateToHome = { openMainActivity() },
                         onNavigateToChat = { openChat() },
-                        onNavigateToSearch = { openModelSetup() },
+                        onNavigateToSearch = { openSearchActivity() },
+                        onNavigateToProfile = { openProfileActivity() },
                         onNavigateToSettings = { openSettings() }
                     )
                 }
@@ -110,13 +155,28 @@ class WelcomeActivity : ComponentActivity() {
         finish()
     }
     
+    private fun openSearchActivity() {
+        orabelPreferences.setLastNavigationIndex(1)
+        val intent = Intent(this, SearchActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+    
+    private fun openProfileActivity() {
+        orabelPreferences.setLastNavigationIndex(4)
+        val intent = Intent(this, ProfileActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+    
     private fun openSettings() {
         // No guarda índice de navegación porque configuración no está en el menú inferior
         val intent = Intent(this, SettingsActivity::class.java)
         startActivity(intent)
         finish()
     }
-      private fun showCloudModeComingSoon() {
+    
+    private fun showCloudModeComingSoon() {
         Toast.makeText(this, getString(R.string.cloud_mode_coming_soon), Toast.LENGTH_LONG).show()
     }
     
@@ -130,7 +190,46 @@ class WelcomeActivity : ComponentActivity() {
             Toast.makeText(this, getString(R.string.no_internet_connection), Toast.LENGTH_LONG).show()
         }
     }
-}
+    
+    // Esta función ya no se llama automáticamente
+    // Los permisos se solicitan cuando el usuario activa el asistente de voz en MainActivity
+    private fun requestAllPermissions() {
+        val permissionsToRequest = mutableListOf<String>()
+        
+        // Verificar qué permisos faltan
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.RECORD_AUDIO)
+        }
+        
+        if (checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            permissionsToRequest.add(Manifest.permission.CAMERA)
+        }
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+        
+        // Solicitar permisos normales solo si faltan
+        if (permissionsToRequest.isNotEmpty()) {
+            permissionsPending.value = permissionsToRequest.size + 1
+            requestMultiplePermissions.launch(permissionsToRequest.toTypedArray())
+        }
+        
+        // SYSTEM_ALERT_WINDOW requiere intent especial
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!Settings.canDrawOverlays(this)) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    Uri.parse("package:$packageName")
+                )
+                requestOverlayPermission.launch(intent)
+            } else {
+                permissionsPending.value--
+            }
+        }
+    }
 
 @Composable
 fun WelcomeScreen(
@@ -327,9 +426,10 @@ fun ModernWelcomeScreen(
     onNavigateToHome: () -> Unit,
     onNavigateToChat: () -> Unit,
     onNavigateToSearch: () -> Unit,
+    onNavigateToProfile: () -> Unit,
     onNavigateToSettings: () -> Unit
 ) {
-    var selectedBottomNav by remember { mutableStateOf(3) } // Perfil seleccionado por defecto
+    var selectedBottomNav by remember { mutableStateOf(3) } // Calendario seleccionado por defecto
     var showAboutDialog by remember { mutableStateOf(false) }
 
     Column(
@@ -568,7 +668,8 @@ fun ModernWelcomeScreen(
                 0 -> onNavigateToHome() // Home
                 1 -> onNavigateToSearch() // Búsqueda -> Setup de modelos
                 2 -> onNavigateToChat() // Chat
-                3 -> { /* Perfil - ya estamos aquí */ }
+                3 -> { /* Calendario - ya estamos aquí en Welcome */ }
+                4 -> onNavigateToProfile() // Perfil nuevo (ProfileActivity)
             }
         }
     )
@@ -696,4 +797,5 @@ fun AboutLyrionDialog(onDismiss: () -> Unit) {
             }
         }
     }
+}
 }

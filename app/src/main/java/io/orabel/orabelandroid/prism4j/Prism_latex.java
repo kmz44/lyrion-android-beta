@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.shubham0204.smollmandroid.prism4j;
+package io.orabel.orabelandroid.prism4j;
 
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static java.util.regex.Pattern.MULTILINE;

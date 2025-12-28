@@ -1,0 +1,936 @@
+{
+  "_note1": "KEEP THIS FILE! Check it into a version control system (VCS) like git.",
+  "_note2": "ObjectBox manages crucial IDs for your object model. See docs for details.",
+  "_note3": "If you have VCS merge conflicts, you must resolve them according to ObjectBox docs.",
+  "entities": [
+    {
+      "id": "1:7189463927366363857",
+      "lastPropertyId": "9:23752982720053390",
+      "name": "Chat",
+      "properties": [
+        {
+          "id": "1:7391880913925750988",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:7843644517300847434",
+          "name": "name",
+          "type": 9
+        },
+        {
+          "id": "3:4204636343204262946",
+          "name": "systemPrompt",
+          "type": 9
+        },
+        {
+          "id": "4:1003912769998628106",
+          "name": "dateCreated",
+          "type": 10
+        },
+        {
+          "id": "5:3637679214303931514",
+          "name": "dateUsed",
+          "type": 10
+        },
+        {
+          "id": "6:6268094525441042788",
+          "name": "llmModelId",
+          "type": 6
+        },
+        {
+          "id": "7:7605718361184974082",
+          "name": "minP",
+          "type": 7
+        },
+        {
+          "id": "8:2529303885977352296",
+          "name": "temperature",
+          "type": 7
+        },
+        {
+          "id": "9:23752982720053390",
+          "name": "isTask",
+          "type": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "2:1291864881599052447",
+      "lastPropertyId": "4:534146417128225942",
+      "name": "ChatMessage",
+      "properties": [
+        {
+          "id": "1:3043557973027682772",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3728483052292187582",
+          "name": "chatId",
+          "type": 6
+        },
+        {
+          "id": "3:6675923023199727552",
+          "name": "message",
+          "type": 9
+        },
+        {
+          "id": "4:534146417128225942",
+          "name": "isUserMessage",
+          "type": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "3:248145244969688012",
+      "lastPropertyId": "4:1803197220601426819",
+      "name": "LLMModel",
+      "properties": [
+        {
+          "id": "1:5124549760000881208",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:1191128067219152493",
+          "name": "name",
+          "type": 9
+        },
+        {
+          "id": "3:5111560562823472241",
+          "name": "url",
+          "type": 9
+        },
+        {
+          "id": "4:1803197220601426819",
+          "name": "path",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "4:4212948268343015666",
+      "lastPropertyId": "4:5286914439198968062",
+      "name": "Task",
+      "properties": [
+        {
+          "id": "1:679136690871466997",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3163926424708753970",
+          "name": "name",
+          "type": 9
+        },
+        {
+          "id": "3:7129625057396686318",
+          "name": "systemPrompt",
+          "type": 9
+        },
+        {
+          "id": "4:5286914439198968062",
+          "name": "modelId",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "5:2137734299215009505",
+      "lastPropertyId": "9:2722661670614840956",
+      "name": "ExerciseDay",
+      "properties": [
+        {
+          "id": "1:6694027783927305937",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:8380364592980454047",
+          "name": "dateIso",
+          "indexId": "1:4701489107622806680",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:4827640268246868417",
+          "name": "routineJson",
+          "type": 9
+        },
+        {
+          "id": "4:6066248940732516798",
+          "name": "completed",
+          "type": 1
+        },
+        {
+          "id": "5:943975265963527693",
+          "name": "completedAt",
+          "type": 10
+        },
+        {
+          "id": "6:6741057569601318160",
+          "name": "mood",
+          "type": 5
+        },
+        {
+          "id": "7:5805637956533348796",
+          "name": "energy",
+          "type": 5
+        },
+        {
+          "id": "8:3968825946508781787",
+          "name": "durationMinutes",
+          "type": 5
+        },
+        {
+          "id": "9:2722661670614840956",
+          "name": "caloriesBurned",
+          "type": 5
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "6:6599222798188227612",
+      "lastPropertyId": "8:6514095745831472200",
+      "name": "HealthProfile",
+      "properties": [
+        {
+          "id": "1:2650375671744430213",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:437428389203533241",
+          "name": "age",
+          "type": 5
+        },
+        {
+          "id": "3:3377956746758136976",
+          "name": "heightCm",
+          "type": 5
+        },
+        {
+          "id": "4:1241049790213318657",
+          "name": "weightKg",
+          "type": 7
+        },
+        {
+          "id": "5:3825841649131768754",
+          "name": "conditions",
+          "type": 9
+        },
+        {
+          "id": "6:4846761799023048725",
+          "name": "equipment",
+          "type": 9
+        },
+        {
+          "id": "7:1148037151227646913",
+          "name": "baseRoutineJson",
+          "type": 9
+        },
+        {
+          "id": "8:6514095745831472200",
+          "name": "updatedAt",
+          "type": 10
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "7:4623556328085180950",
+      "lastPropertyId": "6:3716373491929447577",
+      "name": "HealthScheduleItem",
+      "properties": [
+        {
+          "id": "1:4355074692521870127",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:4364346430762418764",
+          "name": "time24h",
+          "type": 9
+        },
+        {
+          "id": "3:3469586789959430489",
+          "name": "enabled",
+          "type": 1
+        },
+        {
+          "id": "4:3142521060848742110",
+          "name": "title",
+          "type": 9
+        },
+        {
+          "id": "5:1321097488508401460",
+          "name": "description",
+          "type": 9
+        },
+        {
+          "id": "6:3716373491929447577",
+          "name": "calendarEventId",
+          "type": 6
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "8:4513937803710803003",
+      "lastPropertyId": "7:4776595302931721927",
+      "name": "DailyStats",
+      "properties": [
+        {
+          "id": "1:1688288808358194433",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:4908172446881349832",
+          "name": "dateIso",
+          "indexId": "2:4574282634373400042",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:8561545279784646984",
+          "name": "exerciseCompleted",
+          "type": 1
+        },
+        {
+          "id": "4:2965001001820242028",
+          "name": "tasksCompleted",
+          "type": 5
+        },
+        {
+          "id": "5:1108679433302565879",
+          "name": "totalTasks",
+          "type": 5
+        },
+        {
+          "id": "6:1759244376697073754",
+          "name": "caloriesConsumed",
+          "type": 5
+        },
+        {
+          "id": "7:4776595302931721927",
+          "name": "createdAt",
+          "type": 10
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "9:7179022968246289304",
+      "lastPropertyId": "8:7168492066847074610",
+      "name": "DailyTask",
+      "properties": [
+        {
+          "id": "1:5750125199580817967",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:7255767242364428278",
+          "name": "dateIso",
+          "indexId": "3:5762497781788803502",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:441849843928230432",
+          "name": "title",
+          "type": 9
+        },
+        {
+          "id": "4:989958604318998185",
+          "name": "description",
+          "type": 9
+        },
+        {
+          "id": "5:8429205459559367905",
+          "name": "completed",
+          "type": 1
+        },
+        {
+          "id": "6:6225629409771856930",
+          "name": "completedAt",
+          "type": 10
+        },
+        {
+          "id": "7:3947342978156908333",
+          "name": "scheduledTime",
+          "type": 9
+        },
+        {
+          "id": "8:7168492066847074610",
+          "name": "category",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "10:4681139401488294239",
+      "lastPropertyId": "6:3726640658695833428",
+      "name": "FoodEntry",
+      "properties": [
+        {
+          "id": "1:768849949221111013",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:8308363432601799606",
+          "name": "dateIso",
+          "indexId": "4:6946733452070944374",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:8174050316129937933",
+          "name": "mealName",
+          "type": 9
+        },
+        {
+          "id": "4:104571857909414899",
+          "name": "calories",
+          "type": 5
+        },
+        {
+          "id": "5:6219717563756003901",
+          "name": "description",
+          "type": 9
+        },
+        {
+          "id": "6:3726640658695833428",
+          "name": "timestamp",
+          "type": 10
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "11:8925148320881278222",
+      "lastPropertyId": "5:5838228470769146619",
+      "name": "Achievement",
+      "properties": [
+        {
+          "id": "1:1099847808407418878",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:2147562707182771025",
+          "name": "code",
+          "indexId": "5:4687392698237287446",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:165269674212600423",
+          "name": "title",
+          "type": 9
+        },
+        {
+          "id": "4:32385793185628157",
+          "name": "description",
+          "type": 9
+        },
+        {
+          "id": "5:5838228470769146619",
+          "name": "achievedAt",
+          "type": 10
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "12:7454975994659335005",
+      "lastPropertyId": "4:8215985337273135268",
+      "name": "GamificationState",
+      "properties": [
+        {
+          "id": "1:8946023037943285975",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:767709948275775188",
+          "name": "points",
+          "type": 5
+        },
+        {
+          "id": "3:5683809888305133145",
+          "name": "streak",
+          "type": 5
+        },
+        {
+          "id": "4:8215985337273135268",
+          "name": "lastCompletedDateIso",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "13:1297311770121505227",
+      "lastPropertyId": "8:6486899531425528572",
+      "name": "HealthDiaryEntry",
+      "properties": [
+        {
+          "id": "1:3827987178754205591",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:574624028418624564",
+          "name": "userReportText",
+          "type": 9
+        },
+        {
+          "id": "3:7673801034709603419",
+          "name": "category",
+          "type": 9
+        },
+        {
+          "id": "4:4923718784617190133",
+          "name": "recordedAt",
+          "type": 10
+        },
+        {
+          "id": "5:3801619298463678954",
+          "name": "chatId",
+          "type": 6
+        },
+        {
+          "id": "6:5295400192107590070",
+          "name": "extractedInfo",
+          "type": 9
+        },
+        {
+          "id": "7:7179205451736217779",
+          "name": "userConcern",
+          "type": 1
+        },
+        {
+          "id": "8:6486899531425528572",
+          "name": "concernLevel",
+          "type": 5
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "14:4494555455880814607",
+      "lastPropertyId": "20:6973843875993394921",
+      "name": "UserMedicalProfile",
+      "properties": [
+        {
+          "id": "1:4032149856303825445",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:3791762975393246448",
+          "name": "fullName",
+          "type": 9
+        },
+        {
+          "id": "3:7887008611078365648",
+          "name": "birthDate",
+          "type": 10
+        },
+        {
+          "id": "4:9073544012315814490",
+          "name": "age",
+          "type": 5
+        },
+        {
+          "id": "5:3321151919787138368",
+          "name": "gender",
+          "type": 9
+        },
+        {
+          "id": "6:1474295710483532387",
+          "name": "height",
+          "type": 8
+        },
+        {
+          "id": "7:3895637935096348253",
+          "name": "weight",
+          "type": 8
+        },
+        {
+          "id": "8:6902334770042966161",
+          "name": "bmi",
+          "type": 8
+        },
+        {
+          "id": "9:593828223451229574",
+          "name": "bloodType",
+          "type": 9
+        },
+        {
+          "id": "10:4956337111511970904",
+          "name": "allergies",
+          "type": 9
+        },
+        {
+          "id": "11:5428393273017803487",
+          "name": "currentMedications",
+          "type": 9
+        },
+        {
+          "id": "12:4348357016543032279",
+          "name": "chronicConditions",
+          "type": 9
+        },
+        {
+          "id": "13:5589139762111547720",
+          "name": "emergencyContactName",
+          "type": 9
+        },
+        {
+          "id": "14:7472115324403431971",
+          "name": "emergencyContactPhone",
+          "type": 9
+        },
+        {
+          "id": "15:3563325707943806754",
+          "name": "emergencyContactRelation",
+          "type": 9
+        },
+        {
+          "id": "16:7539783792866566368",
+          "name": "previousSurgeries",
+          "type": 9
+        },
+        {
+          "id": "17:2910499187357376482",
+          "name": "importantMedicalHistory",
+          "type": 9
+        },
+        {
+          "id": "18:3353210716649906550",
+          "name": "notes",
+          "type": 9
+        },
+        {
+          "id": "19:2736723427566610818",
+          "name": "createdAt",
+          "type": 10
+        },
+        {
+          "id": "20:6973843875993394921",
+          "name": "lastUpdated",
+          "type": 10
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "15:8290819964177827061",
+      "lastPropertyId": "11:115541216412561180",
+      "name": "CachedCalendarEvent",
+      "properties": [
+        {
+          "id": "1:5735268921308492542",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:5847436204752193441",
+          "name": "googleEventId",
+          "type": 9
+        },
+        {
+          "id": "3:1305028705175050744",
+          "name": "title",
+          "type": 9
+        },
+        {
+          "id": "4:9165764530538142452",
+          "name": "description",
+          "type": 9
+        },
+        {
+          "id": "5:1545964529102267772",
+          "name": "startTime",
+          "type": 6
+        },
+        {
+          "id": "6:1622281445145935707",
+          "name": "endTime",
+          "type": 6
+        },
+        {
+          "id": "7:5082538237621816305",
+          "name": "location",
+          "type": 9
+        },
+        {
+          "id": "8:1634873590010441676",
+          "name": "isAllDay",
+          "type": 1
+        },
+        {
+          "id": "9:4566615569996016433",
+          "name": "isSynced",
+          "type": 1
+        },
+        {
+          "id": "10:2478187558443765752",
+          "name": "lastSyncTime",
+          "type": 6
+        },
+        {
+          "id": "11:115541216412561180",
+          "name": "monthYear",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "16:3884966770508914021",
+      "lastPropertyId": "12:5705851991627945449",
+      "name": "PendingCalendarSync",
+      "properties": [
+        {
+          "id": "1:7729378514907632861",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:8987292033674894332",
+          "name": "operationType",
+          "type": 9
+        },
+        {
+          "id": "3:1593260007352190586",
+          "name": "eventTitle",
+          "type": 9
+        },
+        {
+          "id": "4:5500882322201225397",
+          "name": "eventDescription",
+          "type": 9
+        },
+        {
+          "id": "5:75969901736179657",
+          "name": "eventStartTime",
+          "type": 6
+        },
+        {
+          "id": "6:5286780393600592898",
+          "name": "eventEndTime",
+          "type": 6
+        },
+        {
+          "id": "7:3636003890907711624",
+          "name": "eventLocation",
+          "type": 9
+        },
+        {
+          "id": "8:8366882929409263213",
+          "name": "eventIsAllDay",
+          "type": 1
+        },
+        {
+          "id": "9:4061393649596857461",
+          "name": "googleEventId",
+          "type": 9
+        },
+        {
+          "id": "10:764478078007837357",
+          "name": "createdAt",
+          "type": 6
+        },
+        {
+          "id": "11:2217783676003280974",
+          "name": "retryCount",
+          "type": 5
+        },
+        {
+          "id": "12:5705851991627945449",
+          "name": "lastError",
+          "type": 9
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "17:1795955339764543134",
+      "lastPropertyId": "12:3267777414243149443",
+      "name": "PersonalContext",
+      "properties": [
+        {
+          "id": "1:2255026100425328740",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:871446339545592122",
+          "name": "contextType",
+          "indexId": "6:4418249137012593342",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:2933125174927739302",
+          "name": "key",
+          "indexId": "7:289020682396063157",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "4:306668176800394193",
+          "name": "value",
+          "type": 9
+        },
+        {
+          "id": "5:7683904631568841848",
+          "name": "notes",
+          "type": 9
+        },
+        {
+          "id": "6:7790203491845048563",
+          "name": "timestamp",
+          "type": 6
+        },
+        {
+          "id": "7:725700272703906946",
+          "name": "lastUsed",
+          "type": 6
+        },
+        {
+          "id": "8:7181254574467724198",
+          "name": "relevanceScore",
+          "type": 5
+        },
+        {
+          "id": "9:446881269389688523",
+          "name": "useCount",
+          "type": 5
+        },
+        {
+          "id": "10:3818077093543453619",
+          "name": "category",
+          "type": 9
+        },
+        {
+          "id": "11:4852898466841682839",
+          "name": "emotion",
+          "type": 9
+        },
+        {
+          "id": "12:3267777414243149443",
+          "name": "isActive",
+          "type": 1
+        }
+      ],
+      "relations": []
+    },
+    {
+      "id": "18:407228075979609238",
+      "lastPropertyId": "11:7542995197034564700",
+      "name": "StudyKnowledge",
+      "properties": [
+        {
+          "id": "1:2718734526057809010",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:5361655460310342158",
+          "name": "category",
+          "indexId": "8:8681857321281835559",
+          "type": 9,
+          "flags": 2048
+        },
+        {
+          "id": "3:7241058933852396012",
+          "name": "topic",
+          "type": 9
+        },
+        {
+          "id": "4:4740701891273936209",
+          "name": "content",
+          "type": 9
+        },
+        {
+          "id": "5:5512595276308881924",
+          "name": "formulas",
+          "type": 9
+        },
+        {
+          "id": "6:8194506541639152135",
+          "name": "examples",
+          "type": 9
+        },
+        {
+          "id": "7:7857646954844938183",
+          "name": "timestamp",
+          "type": 6
+        },
+        {
+          "id": "8:8697725232233102789",
+          "name": "useCount",
+          "type": 5
+        },
+        {
+          "id": "9:1950805983483996797",
+          "name": "relevanceScore",
+          "type": 5
+        },
+        {
+          "id": "10:459041668762868516",
+          "name": "keywords",
+          "type": 9
+        },
+        {
+          "id": "11:7542995197034564700",
+          "name": "difficulty",
+          "type": 9
+        }
+      ],
+      "relations": []
+    }
+  ],
+  "lastEntityId": "18:407228075979609238",
+  "lastIndexId": "8:8681857321281835559",
+  "lastRelationId": "0:0",
+  "lastSequenceId": "0:0",
+  "modelVersion": 5,
+  "modelVersionParserMinimum": 5,
+  "retiredEntityUids": [],
+  "retiredIndexUids": [],
+  "retiredPropertyUids": [],
+  "retiredRelationUids": [],
+  "version": 1
+}

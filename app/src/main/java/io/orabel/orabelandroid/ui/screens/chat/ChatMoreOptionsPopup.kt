@@ -34,7 +34,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -66,7 +66,8 @@ fun ChatMoreOptionsPopup(
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onChangeModelClick: () -> Unit,
-    onBackToMainClick: () -> Unit
+    onBackToMainClick: () -> Unit,
+    onImportModelsClick: () -> Unit
 ) {
     Popup(
         onDismissRequest = onDismiss,
@@ -166,7 +167,7 @@ fun ChatMoreOptionsPopup(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Icon(
-                            Icons.Default.SwapHoriz,
+                            imageVector = Icons.Default.FileDownload,
                             contentDescription = null,
                             tint = OrabelSecondary,
                             modifier = Modifier.size(20.dp)
@@ -174,6 +175,37 @@ fun ChatMoreOptionsPopup(
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
                             text = "Cambiar Modelo",
+                            fontFamily = AppFontFamily,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+
+                // Import Models Option
+                TextButton(
+                    onClick = {
+                        onImportModelsClick()
+                        onDismiss()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            Icons.Default.FileDownload,
+                            contentDescription = null,
+                            tint = OrabelPrimary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Importar Modelos",
                             fontFamily = AppFontFamily,
                             color = MaterialTheme.colorScheme.onSurface,
                             fontSize = 16.sp

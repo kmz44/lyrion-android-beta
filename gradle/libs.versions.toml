@@ -14,6 +14,7 @@ navigationComposeVersion = "2.8.3"
 koin = "3.5.6"
 koinAnnotations = "1.3.1"
 objectboxGradlePlugin = "4.0.3"
+media3 = "1.4.1"
 
 
 [libraries]
@@ -43,6 +44,9 @@ koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koin" }
 koin-annotations = { module = "io.insert-koin:koin-annotations", version.ref = "koinAnnotations" }
 koin-ksp-compiler = { module = "io.insert-koin:koin-ksp-compiler", version.ref = "koinAnnotations" }
+androidx-media3-exoplayer = { group = "androidx.media3", name = "media3-exoplayer", version.ref = "media3" }
+androidx-media3-ui = { group = "androidx.media3", name = "media3-ui", version.ref = "media3" }
+androidx-media3-session = { group = "androidx.media3", name = "media3-session", version.ref = "media3" }
 
 
 [plugins]

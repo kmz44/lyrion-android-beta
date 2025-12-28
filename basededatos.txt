@@ -1,0 +1,314 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.chats (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user1_id uuid,
+  user2_id uuid,
+  type text DEFAULT 'random'::text CHECK (type = ANY (ARRAY['random'::text, 'reconnect'::text])),
+  status text DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'ended'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  ended_at timestamp with time zone,
+  CONSTRAINT chats_pkey PRIMARY KEY (id),
+  CONSTRAINT chats_user1_id_fkey FOREIGN KEY (user1_id) REFERENCES public.users(id),
+  CONSTRAINT chats_user2_id_fkey FOREIGN KEY (user2_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.comment_reactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  comment_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  reaction_type text NOT NULL CHECK (reaction_type = ANY (ARRAY['like'::text, 'dislike'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT comment_reactions_pkey PRIMARY KEY (id),
+  CONSTRAINT comment_reactions_comment_id_fkey FOREIGN KEY (comment_id) REFERENCES public.comments(id),
+  CONSTRAINT comment_reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.comments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  post_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  content text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  parent_id uuid,
+  likes_count integer DEFAULT 0,
+  dislikes_count integer DEFAULT 0,
+  CONSTRAINT comments_pkey PRIMARY KEY (id),
+  CONSTRAINT comments_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id),
+  CONSTRAINT comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT comments_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.comments(id)
+);
+CREATE TABLE public.connections_backup_deprecated (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  follower_id uuid NOT NULL,
+  following_id uuid NOT NULL,
+  status text DEFAULT 'pendiente'::text CHECK (status = ANY (ARRAY['pendiente'::text, 'amigos'::text, 'bloqueado'::text, 'siguiendo'::text])),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  is_following boolean DEFAULT false,
+  friendship_status text DEFAULT 'none'::text CHECK (friendship_status = ANY (ARRAY['none'::text, 'pendiente'::text, 'amigos'::text, 'bloqueado'::text])),
+  CONSTRAINT connections_backup_deprecated_pkey PRIMARY KEY (id),
+  CONSTRAINT connections_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES public.users(id),
+  CONSTRAINT connections_following_id_fkey FOREIGN KEY (following_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.contacts (
+  id bigint NOT NULL DEFAULT nextval('contacts_id_seq'::regclass),
+  user_id uuid,
+  contact_id uuid,
+  met_at timestamp with time zone DEFAULT now(),
+  chat_count integer DEFAULT 1,
+  is_favorite boolean DEFAULT false,
+  is_blocked boolean DEFAULT false,
+  last_chat timestamp with time zone DEFAULT now(),
+  CONSTRAINT contacts_pkey PRIMARY KEY (id),
+  CONSTRAINT contacts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT contacts_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.content_recommendations (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  content_id uuid NOT NULL,
+  content_type text NOT NULL CHECK (content_type = ANY (ARRAY['post'::text, 'reel'::text])),
+  score double precision DEFAULT 0.0,
+  reason text,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT content_recommendations_pkey PRIMARY KEY (id),
+  CONSTRAINT content_recommendations_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.direct_messages (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  sender_id uuid NOT NULL,
+  receiver_id uuid NOT NULL,
+  content text NOT NULL,
+  is_read boolean DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  is_temporary boolean DEFAULT true,
+  seen_at timestamp with time zone,
+  status text DEFAULT 'sent'::text CHECK (status = ANY (ARRAY['sent'::text, 'delivered'::text, 'read'::text])),
+  delivered_at timestamp with time zone,
+  reply_to_id bigint,
+  reply_context_content text,
+  reply_context_sender_username text,
+  CONSTRAINT direct_messages_pkey PRIMARY KEY (id),
+  CONSTRAINT direct_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id),
+  CONSTRAINT direct_messages_receiver_id_fkey FOREIGN KEY (receiver_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.followers (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  follower_id uuid NOT NULL,
+  followed_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  notifications_enabled boolean DEFAULT true,
+  CONSTRAINT followers_pkey PRIMARY KEY (id),
+  CONSTRAINT followers_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES public.users(id),
+  CONSTRAINT followers_followed_id_fkey FOREIGN KEY (followed_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.friend_requests (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  sender_id uuid NOT NULL,
+  receiver_id uuid NOT NULL,
+  status text DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'rejected'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT friend_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT friend_requests_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id),
+  CONSTRAINT friend_requests_receiver_id_fkey FOREIGN KEY (receiver_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.friends (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  friend_id uuid NOT NULL,
+  status text DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'blocked'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT friends_pkey PRIMARY KEY (id),
+  CONSTRAINT friends_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT friends_friend_id_fkey FOREIGN KEY (friend_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.group_members (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  group_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  role text DEFAULT 'member'::text CHECK (role = ANY (ARRAY['admin'::text, 'moderator'::text, 'member'::text])),
+  joined_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT group_members_pkey PRIMARY KEY (id),
+  CONSTRAINT group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.groups(id),
+  CONSTRAINT group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.groups (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  description text,
+  image_url text,
+  creator_id uuid NOT NULL,
+  type text NOT NULL CHECK (type = ANY (ARRAY['public'::text, 'friends_only'::text, 'followers_only'::text, 'private'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT groups_pkey PRIMARY KEY (id),
+  CONSTRAINT groups_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.messages (
+  id bigint NOT NULL DEFAULT nextval('messages_id_seq'::regclass),
+  chat_id uuid,
+  sender_id uuid,
+  content text NOT NULL,
+  message_type text DEFAULT 'text'::text CHECK (message_type = ANY (ARRAY['text'::text, 'image'::text, 'system'::text])),
+  created_at timestamp with time zone DEFAULT now(),
+  is_read boolean DEFAULT false,
+  CONSTRAINT messages_pkey PRIMARY KEY (id),
+  CONSTRAINT messages_chat_id_fkey FOREIGN KEY (chat_id) REFERENCES public.chats(id),
+  CONSTRAINT messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.post_reactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  post_id uuid NOT NULL,
+  user_id uuid NOT NULL,
+  emoji text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT post_reactions_pkey PRIMARY KEY (id),
+  CONSTRAINT post_reactions_post_id_fkey FOREIGN KEY (post_id) REFERENCES public.posts(id),
+  CONSTRAINT post_reactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.posts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  creator_id uuid NOT NULL,
+  media_url text NOT NULL,
+  media_type text NOT NULL CHECK (media_type = ANY (ARRAY['video'::text, 'image'::text])),
+  caption text,
+  attribute_boost text,
+  likes_count integer DEFAULT 0,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  is_anonymous boolean DEFAULT false,
+  content_type text DEFAULT 'post'::text CHECK (content_type = ANY (ARRAY['post'::text, 'reel'::text, 'both'::text])),
+  duration_seconds integer,
+  thumbnail_url text,
+  title text,
+  category text,
+  CONSTRAINT posts_pkey PRIMARY KEY (id),
+  CONSTRAINT posts_creator_id_fkey FOREIGN KEY (creator_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.productivity_logs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  task_name text NOT NULL,
+  exp_gained integer DEFAULT 0,
+  status text DEFAULT 'en_progreso'::text CHECK (status = ANY (ARRAY['completado'::text, 'en_progreso'::text])),
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT productivity_logs_pkey PRIMARY KEY (id),
+  CONSTRAINT productivity_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.stories (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  media_url text NOT NULL,
+  media_type text NOT NULL CHECK (media_type = ANY (ARRAY['image'::text, 'video'::text])),
+  thumbnail_url text,
+  caption text,
+  duration_seconds integer DEFAULT 5,
+  created_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  expires_at timestamp with time zone NOT NULL DEFAULT (timezone('utc'::text, now()) + '24:00:00'::interval),
+  views_count integer DEFAULT 0,
+  is_active boolean DEFAULT true,
+  visibility text DEFAULT 'followers'::text CHECK (visibility = ANY (ARRAY['followers'::text, 'friends'::text])),
+  CONSTRAINT stories_pkey PRIMARY KEY (id),
+  CONSTRAINT stories_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.story_views (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  story_id uuid NOT NULL,
+  viewer_id uuid NOT NULL,
+  viewed_at timestamp with time zone NOT NULL DEFAULT timezone('utc'::text, now()),
+  CONSTRAINT story_views_pkey PRIMARY KEY (id),
+  CONSTRAINT story_views_story_id_fkey FOREIGN KEY (story_id) REFERENCES public.stories(id),
+  CONSTRAINT story_views_viewer_id_fkey FOREIGN KEY (viewer_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_attributes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  fuerza integer DEFAULT 0,
+  resistencia integer DEFAULT 0,
+  velocidad integer DEFAULT 0,
+  agilidad integer DEFAULT 0,
+  coordinacion integer DEFAULT 0,
+  vitalidad integer DEFAULT 0,
+  destreza integer DEFAULT 0,
+  kinestesia integer DEFAULT 0,
+  armadura_natural integer DEFAULT 0,
+  reflejos integer DEFAULT 0,
+  stamina integer DEFAULT 0,
+  inteligencia integer DEFAULT 0,
+  percepcion integer DEFAULT 0,
+  voluntad integer DEFAULT 0,
+  creatividad integer DEFAULT 0,
+  atencion integer DEFAULT 0,
+  conocimiento_tecnico integer DEFAULT 0,
+  medicina integer DEFAULT 0,
+  vision integer DEFAULT 0,
+  audicion integer DEFAULT 0,
+  olfato_gusto integer DEFAULT 0,
+  consciencia integer DEFAULT 0,
+  control_interno integer DEFAULT 0,
+  carisma integer DEFAULT 0,
+  estabilidad_emocional integer DEFAULT 0,
+  empatia integer DEFAULT 0,
+  confianza integer DEFAULT 0,
+  reputacion integer DEFAULT 0,
+  influencia integer DEFAULT 0,
+  negociacion integer DEFAULT 0,
+  liderazgo integer DEFAULT 0,
+  supervivencia integer DEFAULT 0,
+  defensa_magica integer DEFAULT 0,
+  mana integer DEFAULT 0,
+  aura integer DEFAULT 0,
+  suerte integer DEFAULT 0,
+  afinidad_elemental integer DEFAULT 0,
+  adaptacion integer DEFAULT 0,
+  habilidad_unica integer DEFAULT 0,
+  moralidad integer DEFAULT 0,
+  ambicion integer DEFAULT 0,
+  lealtad integer DEFAULT 0,
+  CONSTRAINT user_attributes_pkey PRIMARY KEY (id),
+  CONSTRAINT user_attributes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.user_interactions (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  target_id uuid NOT NULL,
+  target_type text NOT NULL CHECK (target_type = ANY (ARRAY['post'::text, 'reel'::text, 'comment'::text, 'user'::text])),
+  interaction_type text NOT NULL CHECK (interaction_type = ANY (ARRAY['like'::text, 'dislike'::text, 'view'::text, 'comment'::text, 'share'::text, 'reaction_emoji'::text, 'follow'::text])),
+  metadata jsonb DEFAULT '{}'::jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_interactions_pkey PRIMARY KEY (id),
+  CONSTRAINT user_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
+CREATE TABLE public.users (
+  id uuid NOT NULL,
+  username text UNIQUE,
+  email text,
+  avatar_url text,
+  status text DEFAULT 'offline'::text CHECK (status = ANY (ARRAY['available'::text, 'chatting'::text, 'away'::text, 'busy'::text, 'offline'::text])),
+  last_seen timestamp with time zone DEFAULT now(),
+  is_searching boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  nombre text,
+  apellido text,
+  video_intro_url text,
+  bio text,
+  edad integer,
+  altura_cm integer,
+  peso_kg integer,
+  estado_civil text,
+  pais text,
+  estado_region text,
+  lat double precision,
+  lng double precision,
+  banner_url text,
+  occupation text,
+  is_active boolean DEFAULT false,
+  last_active_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id),
+  CONSTRAINT users_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.waiting_queue (
+  id bigint NOT NULL DEFAULT nextval('waiting_queue_id_seq'::regclass),
+  user_id uuid UNIQUE,
+  joined_at timestamp with time zone DEFAULT now(),
+  preferences jsonb DEFAULT '{}'::jsonb,
+  CONSTRAINT waiting_queue_pkey PRIMARY KEY (id),
+  CONSTRAINT waiting_queue_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
+);

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vision Pro Web Experience</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+
+<body>
+  <!-- Camera Background -->
+  <video id="camera-feed" autoplay playsinline muted></video>
+
+  <!-- Main Interface -->
+  <main id="app">
+    <!-- Glass Window (Simplified) -->
+    <div class="glass-window">
+      <div class="window-content">
+        <div class="glass-panel">
+          <h1>Hola, Usuario</h1>
+          <p>Bienvenido a tu experiencia de computación espacial.</p>
+          <button class="glass-button">Explorar</button>
+        </div>
+      </div>
+
+      <!-- Navigation Bar (Bottom) -->
+      <div class="glass-dock">
+        <div class="dock-item">🏠</div>
+        <div class="dock-item">📷</div>
+        <div class="dock-item">⚙️</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Virtual Cursor -->
+  <div id="hand-cursor" class="cursor"></div>
+
+  <script type="module" src="./main.js"></script>
+</body>
+
+</html>

@@ -73,31 +73,23 @@ fun DrawerUI(
     onItemClick: (Chat) -> Unit,
 ) {
     val context = LocalContext.current
+    val isDark = MaterialTheme.colorScheme.background == Color(0xFF0F172A)
+    
     Column(
         modifier =
             Modifier
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            OrabelPrimary.copy(alpha = 0.05f),
-                            OrabelSecondary.copy(alpha = 0.05f),
-                            OrabelAccent.copy(alpha = 0.05f)
-                        )
-                    )
-                )
+                .background(MaterialTheme.colorScheme.surface)
                 .windowInsetsPadding(WindowInsets.safeContent)
                 .padding(16.dp)
                 .requiredWidth(320.dp)
                 .fillMaxHeight(),
     ) {
-        // Header con gradiente
+        // Header sin degradado, diseño limpio
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(OrabelPrimary, OrabelSecondary)
-                    ),
+                    MaterialTheme.colorScheme.primary,
                     RoundedCornerShape(16.dp)
                 )
                 .padding(16.dp),
@@ -107,26 +99,26 @@ fun DrawerUI(
             Icon(
                 painter = painterResource(id = R.drawable.ic_lyrion_logo),
                 contentDescription = null,
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(28.dp),
                 tint = Color.Unspecified
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = "Lyrion IA",
                 color = Color.White,
                 fontFamily = AppFontFamily,
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = 20.sp
             )
         }
         
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
-        // Botón de nuevo chat modernizado
+        // Botón de nuevo chat limpio sin degradado
         Button(
             colors = ButtonDefaults.buttonColors(
-                containerColor = OrabelPrimary,
-                contentColor = Color.White
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ),
             onClick = {
                 val chatCount = viewModel.chatsDB.getChatsCount()
@@ -138,7 +130,10 @@ fun DrawerUI(
                 .fillMaxWidth()
                 .height(56.dp),
             shape = RoundedCornerShape(16.dp),
-            elevation = ButtonDefaults.buttonElevation(defaultElevation = 4.dp)
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 4.dp,
+                pressedElevation = 6.dp
+            )
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -147,23 +142,29 @@ fun DrawerUI(
                 Icon(
                     Icons.Default.Add, 
                     contentDescription = stringResource(R.string.new_chat_desc),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     stringResource(R.string.new_chat), 
                     fontFamily = AppFontFamily,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
             }
         }
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(28.dp))
         
-        // Título de historial modernizado
+        // Título de historial adaptado al tema
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    RoundedCornerShape(12.dp)
+                )
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(
@@ -171,7 +172,7 @@ fun DrawerUI(
                     .width(4.dp)
                     .height(24.dp)
                     .background(
-                        OrabelAccent,
+                        MaterialTheme.colorScheme.primary,
                         RoundedCornerShape(2.dp)
                     )
             )
@@ -211,47 +212,43 @@ private fun LazyItemScope.ChatListItem(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
+                .padding(vertical = 6.dp)
                 .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            Color.White.copy(alpha = 0.9f),
-                            OrabelAccent.copy(alpha = 0.05f)
-                        )
-                    ),
-                    RoundedCornerShape(16.dp)
+                    Color.White,
+                    RoundedCornerShape(12.dp)
                 )
-                .padding(16.dp)
-                .clip(RoundedCornerShape(16.dp))
+                .padding(14.dp)
+                .clip(RoundedCornerShape(12.dp))
                 .clickable { onItemClick(chat) }
                 .animateItem(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        // Indicador visual
+        // Indicador visual más visible
         Box(
             modifier = Modifier
-                .size(12.dp)
+                .size(10.dp)
                 .background(
-                    OrabelPrimary,
+                    Color(0xFF8B5CF6),
                     CircleShape
                 )
         )
         
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(14.dp))
         
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = chat.name, 
-                fontSize = 16.sp, 
+                fontSize = 15.sp, 
                 fontFamily = AppFontFamily,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface
+                color = Color(0xFF1F2937)
             )
+            Spacer(modifier = Modifier.height(2.dp))
             Text(
                 text = DateUtils.getRelativeTimeSpanString(chat.dateUsed.time).toString(),
                 fontSize = 12.sp,
                 fontFamily = AppFontFamily,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                color = Color(0xFF6B7280)
             )
         }
         
@@ -259,7 +256,7 @@ private fun LazyItemScope.ChatListItem(
         Icon(
             painter = painterResource(id = R.drawable.ic_lyrion_logo),
             contentDescription = null,
-            modifier = Modifier.size(16.dp),
+            modifier = Modifier.size(18.dp),
             tint = Color.Unspecified
         )
     }

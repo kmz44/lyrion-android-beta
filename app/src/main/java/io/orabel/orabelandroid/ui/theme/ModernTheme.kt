@@ -39,19 +39,22 @@ private val LightColorScheme = lightColorScheme(
     outline = BorderColor
 )
 
-// Esquema de colores oscuro
+// Esquema de colores oscuro - Mejorado sin degradados molestos
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryColor,
-    secondary = SecondaryColor,
-    tertiary = AccentColor1,
-    background = Color(0xFF0F172A),
-    surface = Color(0xFF1E293B),
+    primary = Color(0xFF8B5CF6), // Morado más suave
+    secondary = Color(0xFFFBBF24), // Amarillo dorado
+    tertiary = Color(0xFF34D399), // Verde menta
+    background = Color(0xFF0F172A), // Azul oscuro profundo
+    surface = Color(0xFF1E293B), // Superficie ligeramente más clara
+    surfaceVariant = Color(0xFF334155), // Variante para cards
     onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFFF1F5F9),
-    onSurface = Color(0xFFF1F5F9),
-    outline = Color(0xFF334155)
+    onSecondary = Color(0xFF1F2937),
+    onTertiary = Color(0xFF1F2937),
+    onBackground = Color(0xFFF1F5F9), // Texto claro
+    onSurface = Color(0xFFE2E8F0), // Texto sobre superficie
+    onSurfaceVariant = Color(0xFF94A3B8), // Texto secundario
+    outline = Color(0xFF475569), // Bordes suaves
+    outlineVariant = Color(0xFF334155) // Bordes alternativos
 )
 
 // Tipografía moderna
@@ -145,6 +148,7 @@ val ModernTypography = Typography(
 @Composable
 fun ModernOrabelTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = false, // Deshabilitado por defecto para mantener consistencia
     content: @Composable () -> Unit
 ) {
     val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme

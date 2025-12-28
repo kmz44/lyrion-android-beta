@@ -7,10 +7,13 @@ package io.orabel.orabelandroid.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.compose.foundation.isSystemInDarkTheme
+import io.orabel.orabelandroid.ui.theme.ThemeManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.koin.core.annotation.Single
+import java.util.Calendar
 
 @Single
 class OrabelPreferences(private val context: Context) {
@@ -22,24 +25,66 @@ class OrabelPreferences(private val context: Context) {
         private const val KEY_RESPONSE_MAX_LENGTH = "response_max_length"
         private const val KEY_LAST_NAVIGATION_INDEX = "last_navigation_index"
         private const val KEY_IS_DARK_THEME = "is_dark_theme"
+    private const val KEY_HOTWORD_ENABLED = "hotword_enabled"
+    private const val KEY_HOTWORD_START = "hotword_start"
+    private const val KEY_HOTWORD_STOP = "hotword_stop"
     }
     
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     
-    // StateFlow para el tema oscuro - inicializar con el valor actual de SharedPreferences
-    private val _isDarkTheme = MutableStateFlow(prefs.getBoolean(KEY_IS_DARK_THEME, false))
+    // ThemeManager para gestión avanzada de temas
+    private val themeManager = ThemeManager(context)
+    
+    // StateFlow para el tema oscuro - usa ThemeManager
+    private val _isDarkTheme = MutableStateFlow(calculateDarkTheme(false))
     val isDarkThemeFlow: StateFlow<Boolean> = _isDarkTheme.asStateFlow()
     
     // Listener para cambios en SharedPreferences
     private val sharedPreferencesListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == KEY_IS_DARK_THEME) {
-            _isDarkTheme.value = prefs.getBoolean(KEY_IS_DARK_THEME, false)
+        if (key == KEY_IS_DARK_THEME || key == ThemeManager.KEY_THEME_MODE) {
+            updateDarkTheme()
         }
     }
     
     init {
         // Registrar el listener para mantenerse sincronizado
         prefs.registerOnSharedPreferenceChangeListener(sharedPreferencesListener)
+        
+        // Verificar periódicamente si cambió la hora (para modo automático)
+        startAutoThemeChecker()
+    }
+    
+    /**
+     * Calcula si debe usar modo oscuro según la configuración del ThemeManager
+     */
+    private fun calculateDarkTheme(isSystemInDarkMode: Boolean): Boolean {
+        return themeManager.shouldUseDarkTheme(isSystemInDarkMode)
+    }
+    
+    /**
+     * Actualiza el tema oscuro según la configuración actual
+     */
+    fun updateDarkTheme(isSystemInDarkMode: Boolean = false) {
+        val newValue = calculateDarkTheme(isSystemInDarkMode)
+        if (_isDarkTheme.value != newValue) {
+            _isDarkTheme.value = newValue
+            android.util.Log.d("OrabelPreferences", "Theme updated to: ${if (newValue) "Dark" else "Light"}")
+        }
+    }
+    
+    /**
+     * Inicia un verificador periódico para el modo automático por horario
+     */
+    private fun startAutoThemeChecker() {
+        // Verificar cada minuto si cambió la hora (para modo auto)
+        android.os.Handler(android.os.Looper.getMainLooper()).post(object : Runnable {
+            override fun run() {
+                if (themeManager.getThemeMode() == ThemeManager.MODE_AUTO_TIME) {
+                    updateDarkTheme()
+                }
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this, 60000) // 1 minuto
+            }
+        })
     }
     
     /**
@@ -113,19 +158,17 @@ class OrabelPreferences(private val context: Context) {
     }
     
     /**
-     * Guarda la preferencia de tema oscuro
+     * Guarda la preferencia de tema oscuro (modo manual)
      */
     fun setDarkTheme(isDark: Boolean) {
-        // Log para debug - eliminar en producción
         android.util.Log.d("OrabelPreferences", "setDarkTheme called with: $isDark")
         
-        // Actualizar primero el StateFlow, luego SharedPreferences
-        _isDarkTheme.value = isDark
-        prefs.edit().putBoolean(KEY_IS_DARK_THEME, isDark).apply()
+        // Cambiar a modo siempre oscuro o siempre claro
+        val mode = if (isDark) ThemeManager.MODE_ALWAYS_DARK else ThemeManager.MODE_ALWAYS_LIGHT
+        themeManager.setThemeMode(mode)
         
-        // Verificar que se guardó correctamente
-        val saved = prefs.getBoolean(KEY_IS_DARK_THEME, false)
-        android.util.Log.d("OrabelPreferences", "Theme saved as: $saved, StateFlow value: ${_isDarkTheme.value}")
+        // Actualizar el StateFlow
+        updateDarkTheme()
     }
     
     /**
@@ -133,5 +176,53 @@ class OrabelPreferences(private val context: Context) {
      */
     fun isDarkTheme(): Boolean {
         return _isDarkTheme.value
+    }
+    
+    /**
+     * Establece el modo de tema (system, auto_time, always_dark, always_light)
+     */
+    fun setThemeMode(mode: String) {
+        themeManager.setThemeMode(mode)
+        updateDarkTheme()
+    }
+    
+    /**
+     * Obtiene el modo de tema actual
+     */
+    fun getThemeMode(): String {
+        return themeManager.getThemeMode()
+    }
+    
+    /**
+     * Obtiene el ThemeManager
+     */
+    fun getThemeManager(): ThemeManager {
+        return themeManager
+    }
+
+    // === IA Live: Hotword preferences ===
+    fun setHotwordEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_HOTWORD_ENABLED, enabled).apply()
+    }
+
+    fun isHotwordEnabled(): Boolean {
+        return prefs.getBoolean(KEY_HOTWORD_ENABLED, true)
+    }
+
+    fun setStartKeyword(keyword: String) {
+        prefs.edit().putString(KEY_HOTWORD_START, keyword).apply()
+    }
+
+    fun getStartKeyword(): String {
+        return prefs.getString(KEY_HOTWORD_START, "kevin") ?: "kevin"
+    }
+
+    fun setStopKeyword(keyword: String) {
+        prefs.edit().putString(KEY_HOTWORD_STOP, keyword).apply()
+    }
+
+    fun getStopKeyword(): String {
+        val v = prefs.getString(KEY_HOTWORD_STOP, "finaliza") ?: "finaliza"
+        return if (v == "finalisa") "finaliza" else v
     }
 }

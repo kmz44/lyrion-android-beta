@@ -21,8 +21,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,8 +47,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
@@ -93,6 +100,9 @@ import io.orabel.orabelandroid.data.Chat
 import io.orabel.orabelandroid.data.ModelsDB
 import io.orabel.orabelandroid.data.OrabelPreferences
 import io.orabel.orabelandroid.ui.screens.main.ModernMainActivity
+import io.orabel.orabelandroid.ui.screens.search.SearchActivity // Importante para navegar a búsqueda
+import io.orabel.orabelandroid.ui.screens.model_setup.ModernModelSetupActivity
+import io.orabel.orabelandroid.ui.components.swipeableNavigation // Importante para swipe
 import io.orabel.orabelandroid.ui.components.AppBarTitleText
 import io.orabel.orabelandroid.ui.components.MediumLabelText
 import io.orabel.orabelandroid.ui.screens.welcome.WelcomeActivity
@@ -119,10 +129,47 @@ class ChatActivity : ComponentActivity() {
         uri?.let { copyAndSetNewModel(it) }
     }
     
+    // 🆕 Selector de archivos para multimodalidad (imágenes, PDFs, documentos)
+    private val imagePickerLauncher = registerForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let { handleFileSelected(uri) }
+    }
+    
+    private fun handleFileSelected(uri: Uri) {
+        val fileName = uri.lastPathSegment ?: "archivo"
+        val mimeType = contentResolver.getType(uri)
+        val fileType = when {
+            mimeType?.startsWith("image/") == true -> "� Imagen"
+            mimeType?.startsWith("application/pdf") == true -> "📄 PDF"
+            mimeType?.contains("word") == true -> "📝 Word"
+            mimeType?.contains("sheet") == true -> "📊 Excel"
+            mimeType?.contains("presentation") == true -> "📽️ PowerPoint"
+            else -> "📎 Archivo"
+        }
+        Toast.makeText(this, "$fileType seleccionado: $fileName", Toast.LENGTH_SHORT).show()
+        viewModel.attachImage(uri, this)
+    }
+    
+    fun openImagePicker() {
+        imagePickerLauncher.launch("*/*") // Todos los tipos de archivos
+    }
+    
     private fun goBackToMainMenu() {
         val intent = Intent(this, ModernMainActivity::class.java)
         startActivity(intent)
         finish()
+    }
+    
+    private fun openSearch() {
+        val intent = Intent(this, SearchActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+
+    private fun openModelSetup() {
+        val intent = Intent(this, ModernModelSetupActivity::class.java)
+        startActivity(intent)
     }
     
     private fun copyAndSetNewModel(uri: Uri) {
@@ -188,10 +235,15 @@ class ChatActivity : ComponentActivity() {
         setContent {
             // Hacer el tema reactivo a los cambios en las preferencias usando StateFlow
             val isDarkTheme by orabelPreferences.isDarkThemeFlow.collectAsState()
+            val isSystemInDarkMode = androidx.compose.foundation.isSystemInDarkTheme()
+            
+            // Actualizar tema cuando cambie el modo del sistema
+            LaunchedEffect(isSystemInDarkMode) {
+                orabelPreferences.updateDarkTheme(isSystemInDarkMode)
+            }
             
             // Efecto adicional para asegurar que los cambios se detecten
             LaunchedEffect(isDarkTheme) {
-                // Log para debug - eliminar en producción
                 android.util.Log.d("ChatActivity", "Theme changed to: ${if (isDarkTheme) "Dark" else "Light"}")
             }
             
@@ -217,6 +269,8 @@ class ChatActivity : ComponentActivity() {
                             onEditChatParamsClick = { navController.navigate("edit-chat") },
                             onSelectNewModelFileClick = { viewModel.showModelSelectionDialog() },
                             onBackToMainMenuClick = { goBackToMainMenu() },
+                            onImportModelsClick = { openModelSetup() },
+                            onSearchClick = { openSearch() },
                         )
                     }
                 }
@@ -232,156 +286,381 @@ fun ChatActivityScreenUI(
     onEditChatParamsClick: () -> Unit,
     onSelectNewModelFileClick: () -> Unit,
     onBackToMainMenuClick: () -> Unit,
+    onImportModelsClick: () -> Unit,
+    onSearchClick: () -> Unit, // Nuevo callback
 ) {
     val context = LocalContext.current
     val currChat by remember { viewModel.currChatState }
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    
+    // 🆕 Estado para el BottomSheet del historial de chats (reemplaza el drawer)
+    var showChatHistorySheet by remember { mutableStateOf(false) }
+    
     LaunchedEffect(currChat) { viewModel.loadModel() }
     
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            DrawerUI(
-                viewModel,
-                onItemClick = { chat ->
+    // 🆕 BottomSheet para historial de chats (en lugar del drawer deslizable)
+    if (showChatHistorySheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showChatHistorySheet = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            dragHandle = {
+                // Indicador visual de arrastre para cerrar deslizando hacia abajo
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .width(40.dp)
+                            .height(4.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                                RoundedCornerShape(2.dp)
+                            )
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        ) {
+            ChatHistorySheetContent(
+                viewModel = viewModel,
+                onChatSelected = { chat ->
                     viewModel.switchChat(chat)
-                    scope.launch { drawerState.close() }
+                    showChatHistorySheet = false
+                },
+                onNewChatClick = {
+                    val chatCount = viewModel.chatsDB.getChatsCount()
+                    val newChatId = viewModel.chatsDB.addChat(
+                        chatName = context.getString(R.string.untitled) + " ${chatCount + 1}"
+                    )
+                    viewModel.switchChat(
+                        Chat(
+                            id = newChatId,
+                            name = context.getString(R.string.untitled) + " ${chatCount + 1}",
+                            systemPrompt = context.getString(R.string.you_are_helpful_assistant)
+                        )
+                    )
+                    showChatHistorySheet = false
+                }
+            )
+        }
+    }
+    
+    Scaffold(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = currChat?.name ?: stringResource(R.string.select_a_chat),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontFamily = AppFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        if (currChat != null && currChat?.llmModelId != -1L) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(
+                                        OrabelAccent.copy(alpha = 0.1f),
+                                        RoundedCornerShape(12.dp)
+                                    )
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.ic_lyrion_logo),
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = viewModel.modelsRepository
+                                        .getModelFromId(currChat!!.llmModelId)
+                                        ?.name ?: "",
+                                    fontFamily = AppFontFamily,
+                                    fontSize = 12.sp,
+                                    color = OrabelAccent,
+                                    fontWeight = FontWeight.Medium,
+                                )
+                            }
+                        }
+                    }
+                },
+                navigationIcon = {
+                    // 🆕 Botón de historial de chats (reemplaza el menú hamburguesa)
+                    IconButton(onClick = { showChatHistorySheet = true }) {
+                        Icon(
+                            imageVector = Icons.Default.History,
+                            contentDescription = stringResource(R.string.view_chats_desc),
+                            tint = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                },
+                actions = {
+                    if (currChat != null) {
+                        Box {
+                            IconButton(
+                                onClick = { viewModel.showMoreOptionsPopupState.value = true },
+                            ) {
+                                Icon(
+                                    Icons.Default.MoreVert,
+                                    contentDescription = stringResource(R.string.options_desc),
+                                    tint = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                            
+                            if (viewModel.showMoreOptionsPopupState.value) {
+                                ChatMoreOptionsPopup(
+                                    onDismiss = { viewModel.showMoreOptionsPopupState.value = false },
+                                    onEditClick = onEditChatParamsClick,
+                                    onDeleteClick = { /* TODO: Implement delete functionality */ },
+                                    onChangeModelClick = onSelectNewModelFileClick,
+                                    onBackToMainClick = onBackToMainMenuClick,
+                                    onImportModelsClick = onImportModelsClick
+                                )
+                            }
+                        }
+                    }
                 },
             )
         },
-    ) {
-        Scaffold(
+    ) { innerPadding ->
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            OrabelPrimary.copy(alpha = 0.1f),
-                            OrabelSecondary.copy(alpha = 0.1f),
-                            OrabelAccent.copy(alpha = 0.1f)
-                        )
-                    )
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
+                .swipeableNavigation(
+                    currentIndex = 1, // Chat está en índice 1
+                    onSwipeLeft = { onBackToMainMenuClick() }, // Ir a Inicio (índice 2)
+                    onSwipeRight = { onSearchClick() } // Ir a Búsqueda (índice 0)
                 ),
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Column(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = currChat?.name ?: stringResource(R.string.select_a_chat),
-                                style = MaterialTheme.typography.titleLarge,
-                                fontFamily = AppFontFamily,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            if (currChat != null && currChat?.llmModelId != -1L) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(
-                                            OrabelAccent.copy(alpha = 0.1f),
-                                            RoundedCornerShape(12.dp)
-                                        )
-                                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        painter = painterResource(id = R.drawable.ic_lyrion_logo),
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        text = viewModel.modelsRepository
-                                            .getModelFromId(currChat!!.llmModelId)
-                                            ?.name ?: "",
-                                        fontFamily = AppFontFamily,
-                                        fontSize = 12.sp,
-                                        color = OrabelAccent,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(
-                                Icons.Default.Menu,
-                                contentDescription = stringResource(R.string.view_chats_desc),
-                                tint = MaterialTheme.colorScheme.onSurface,
-                            )
-                        }
-                    },
-                    actions = {
-                        if (currChat != null) {
-                            Box {
-                                IconButton(
-                                    onClick = { viewModel.showMoreOptionsPopupState.value = true },
-                                ) {
-                                    Icon(
-                                        Icons.Default.MoreVert,
-                                        contentDescription = stringResource(R.string.options_desc),
-                                        tint = MaterialTheme.colorScheme.onSurface,
-                                    )
-                                }
-                                
-                                if (viewModel.showMoreOptionsPopupState.value) {
-                                    ChatMoreOptionsPopup(
-                                        onDismiss = { viewModel.showMoreOptionsPopupState.value = false },
-                                        onEditClick = onEditChatParamsClick,
-                                        onDeleteClick = { /* TODO: Implement delete functionality */ },
-                                        onChangeModelClick = onSelectNewModelFileClick,
-                                        onBackToMainClick = onBackToMainMenuClick
-                                    )
-                                }
-                            }
-                        }
-                    },
-                )
+        ) {
+            if (currChat != null) {
+                ScreenUI(viewModel)
+            }
+        }
+    }
+    
+    var showSelectModelsListDialog by remember { viewModel.showSelectModelListDialogState }
+    if (showSelectModelsListDialog) {
+        val modelsList by viewModel.modelsRepository.getAvailableModels().collectAsState(emptyList())
+        SelectModelsList(
+            onDismissRequest = { showSelectModelsListDialog = false },
+            modelsList,
+            onModelListItemClick = { model ->
+                viewModel.updateChatLLM(model.id)
+                viewModel.loadModel()
+                showSelectModelsListDialog = false
             },
-        ) { innerPadding ->
-            Column(
+            onModelDeleteClick = { model ->
+                viewModel.deleteModel(model.id)
+                Toast.makeText(
+                    viewModel.context,
+                    context.getString(R.string.model_deleted, model.name),
+                    Toast.LENGTH_LONG,
+                ).show()
+            },
+        )
+    }
+}
+
+/**
+ * Contenido del BottomSheet para el historial de chats
+ * Similar a ChatsListView de iOS
+ */
+@Composable
+private fun ChatHistorySheetContent(
+    viewModel: ChatScreenViewModel,
+    onChatSelected: (Chat) -> Unit,
+    onNewChatClick: () -> Unit
+) {
+    val chats by viewModel.getChats().collectAsState(emptyList())
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .padding(bottom = 32.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.primary,
+                    RoundedCornerShape(16.dp)
+                )
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_lyrion_logo),
+                contentDescription = null,
+                modifier = Modifier.size(28.dp),
+                tint = Color.Unspecified
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = "Lyrion IA",
+                color = Color.White,
+                fontFamily = AppFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 20.sp
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Botón nuevo chat
+        OutlinedButton(
+            onClick = onNewChatClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = null,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = stringResource(R.string.new_chat),
+                fontFamily = AppFontFamily,
+                fontWeight = FontWeight.Bold,
+                fontSize = 16.sp
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        // Título de historial
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    MaterialTheme.colorScheme.surfaceVariant,
+                    RoundedCornerShape(12.dp)
+                )
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
                 modifier = Modifier
-                    .padding(innerPadding)
+                    .width(4.dp)
+                    .height(24.dp)
                     .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                OrabelBackgroundLight,
-                                OrabelSurfaceLight.copy(alpha = 0.8f),
-                                OrabelSurfaceVariantLight.copy(alpha = 0.6f)
-                            )
-                        )
-                    ),
+                        MaterialTheme.colorScheme.primary,
+                        RoundedCornerShape(2.dp)
+                    )
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = stringResource(R.string.previous_chats),
+                style = MaterialTheme.typography.titleMedium,
+                fontFamily = AppFontFamily,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        // Lista de chats
+        if (chats.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                contentAlignment = Alignment.Center
             ) {
-                if (currChat != null) {
-                    ScreenUI(viewModel)
+                Text(
+                    text = "No hay chats anteriores",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontFamily = AppFontFamily
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f, fill = false),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(chats.take(10)) { chat -> // Mostrar últimos 10 chats
+                    ChatHistoryItem(
+                        chat = chat,
+                        onClick = { onChatSelected(chat) }
+                    )
                 }
             }
         }
+    }
+}
+
+/**
+ * Item individual del historial de chats
+ */
+@Composable
+private fun ChatHistoryItem(
+    chat: Chat,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.surfaceVariant,
+                RoundedCornerShape(12.dp)
+            )
+            .clickable { onClick() }
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Indicador visual
+        Box(
+            modifier = Modifier
+                .size(10.dp)
+                .background(
+                    MaterialTheme.colorScheme.primary,
+                    CircleShape
+                )
+        )
         
-        var showSelectModelsListDialog by remember { viewModel.showSelectModelListDialogState }
-        if (showSelectModelsListDialog) {
-            val modelsList by viewModel.modelsRepository.getAvailableModels().collectAsState(emptyList())
-            SelectModelsList(
-                onDismissRequest = { showSelectModelsListDialog = false },
-                modelsList,
-                onModelListItemClick = { model ->
-                    viewModel.updateChatLLM(model.id)
-                    viewModel.loadModel()
-                    showSelectModelsListDialog = false
-                },
-                onModelDeleteClick = { model ->
-                    viewModel.deleteModel(model.id)
-                    Toast.makeText(
-                        viewModel.context,
-                        context.getString(R.string.model_deleted, model.name),
-                        Toast.LENGTH_LONG,
-                    ).show()
-                },
+        Spacer(modifier = Modifier.width(14.dp))
+        
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = chat.name,
+                fontSize = 15.sp,
+                fontFamily = AppFontFamily,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = android.text.format.DateUtils.getRelativeTimeSpanString(chat.dateUsed.time).toString(),
+                fontSize = 12.sp,
+                fontFamily = AppFontFamily,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        
+        // Icono de flecha
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+            contentDescription = null,
+            modifier = Modifier.size(18.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -534,12 +813,7 @@ private fun LazyItemScope.MessageListItem(
                 modifier = Modifier
                     .padding(8.dp)
                     .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                OrabelPrimary,
-                                OrabelSecondary
-                            )
-                        ), 
+                        MaterialTheme.colorScheme.primary,
                         RoundedCornerShape(16.dp)
                     )
                     .padding(12.dp)
@@ -555,6 +829,8 @@ private fun LazyItemScope.MessageListItem(
 @Composable
 private fun MessageInput(viewModel: ChatScreenViewModel) {
     val currChat by remember { viewModel.currChatState }
+    val context = LocalContext.current as ChatActivity
+    
     if ((currChat?.llmModelId ?: -1L) == -1L) {
         Text(
             modifier = Modifier.padding(8.dp),
@@ -565,14 +841,110 @@ private fun MessageInput(viewModel: ChatScreenViewModel) {
         var questionText by remember { mutableStateOf("") }
         val isGeneratingResponse by remember { viewModel.isGeneratingResponse }
         val isInitializingModel by remember { viewModel.isInitializingModel }
-        val context = LocalContext.current
         val keyboardController = LocalSoftwareKeyboardController.current
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+        
+        // 🆕 Estado de archivos adjuntos
+        val attachedFiles by remember { viewModel.attachedFiles }
+        
+        // 🆕 Verificar si el modelo actual es online (Gemini)
+        val currentModel = remember(currChat?.llmModelId) {
+            currChat?.llmModelId?.let { viewModel.modelsRepository.getModelFromId(it) }
+        }
+        val isOnlineModel = remember(currentModel) {
+            currentModel?.name?.contains("Gemini", ignoreCase = true) == true ||
+            currentModel?.name?.contains("Online", ignoreCase = true) == true
+        }
+        
+        // 🎨 Contenedor vertical para preview + input
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+        ) {
+            // 🖼️ Preview de archivos adjuntos (scroll horizontal si hay múltiples)
+            if (attachedFiles.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp))
+                        .padding(12.dp)
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    attachedFiles.forEach { file ->
+                        // Chip para cada archivo con ícono + nombre + botón eliminar
+                        Row(
+                            modifier = Modifier
+                                .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(16.dp))
+                                .padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            val fileIcon = when {
+                                file.mimeType.startsWith("image/") -> "📷"
+                                file.mimeType.startsWith("application/pdf") -> "📄"
+                                file.mimeType.contains("word") -> "📝"
+                                file.mimeType.contains("sheet") -> "📊"
+                                file.mimeType.contains("presentation") -> "📽️"
+                                else -> "📎"
+                            }
+                            
+                            Text(
+                                text = fileIcon,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = file.fileName.take(15) + if (file.fileName.length > 15) "..." else "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1
+                            )
+                            IconButton(
+                                onClick = { viewModel.removeAttachedFile(file) },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Quitar ${file.fileName}",
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+                }
+            }
+        
+            // 🎨 DISEÑO ESTILO WHATSAPP: Todo en una sola fila horizontal
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+            // 📎 Botón adjuntar imagen (solo icono +, sin texto)
+            if (isOnlineModel && !isGeneratingResponse && !isInitializingModel) {
+                IconButton(
+                    onClick = { context.openImagePicker() },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Adjuntar imagen",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            
+            // 💬 Campo de texto
             TextField(
-                modifier = Modifier.fillMaxWidth().weight(1f),
+                modifier = Modifier.weight(1f),
                 value = questionText,
                 onValueChange = { questionText = it },
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = TextFieldDefaults.colors(
                     focusedTextColor = MaterialTheme.colorScheme.onSurface,
                     unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
@@ -596,10 +968,29 @@ private fun MessageInput(viewModel: ChatScreenViewModel) {
                 },
                 keyboardOptions = KeyboardOptions.Default.copy(capitalization = KeyboardCapitalization.Sentences),
             )
-            Spacer(modifier = Modifier.width(8.dp))
+            
+            // 🎤 Botón Gemini Live (icono de ondas/micrófono, sin texto)
+            if (isOnlineModel && !isGeneratingResponse && !isInitializingModel) {
+                IconButton(
+                    onClick = {
+                        val intent = Intent(context, io.orabel.orabelandroid.ui.screens.gemini_live.GeminiLiveActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.RadioButtonChecked, // Círculo con ondas (Live)
+                        contentDescription = "Gemini Live",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+            }
+            
+            // ➡️ Botón enviar / Detener generación
             if (isGeneratingResponse || isInitializingModel) {
-                Box(contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = OrabelPrimary)
+                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(48.dp)) {
+                    CircularProgressIndicator(color = OrabelPrimary, modifier = Modifier.size(40.dp))
                     if (isGeneratingResponse) {
                         IconButton(onClick = { viewModel.stopGeneration() }) {
                             Icon(Icons.Default.Stop, contentDescription = stringResource(R.string.stop_desc), tint = OrabelError)
@@ -609,15 +1000,12 @@ private fun MessageInput(viewModel: ChatScreenViewModel) {
             } else {
                 IconButton(
                     enabled = questionText.isNotEmpty(),
-                    modifier = Modifier.background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                OrabelPrimary,
-                                OrabelSecondary
-                            )
-                        ), 
-                        CircleShape
-                    ),
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(
+                            if (questionText.isNotEmpty()) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                            CircleShape
+                        ),
                     onClick = {
                         keyboardController?.hide()
                         viewModel.sendUserQuery(questionText)
@@ -627,10 +1015,11 @@ private fun MessageInput(viewModel: ChatScreenViewModel) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = stringResource(R.string.send_text_desc),
-                        tint = Color.White,
+                        tint = if (questionText.isNotEmpty()) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
-        }
-    }
+        } // Fin Row
+    } // Fin Column (preview + input)
 }

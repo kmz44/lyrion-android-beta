@@ -1,0 +1,84 @@
+/*
+ * =============================================
+ * GUÍA DE CONEXIONES - PLACA INGENIERO MAKER
+ * Driver TB6612FNG con Arduino Nano
+ * =============================================
+ * 
+ * CARACTERÍSTICAS DEL TB6612FNG:
+ * - Corriente nominal: 1.2A por canal
+ * - Corriente pico: 3A por canal
+ * - Voltaje motores: 6V - 8.4V (máximo)
+ * - Voltaje lógica: 5V (desde Arduino)
+ * 
+ * =============================================
+ * TABLA DE CONEXIONES
+ * =============================================
+ * 
+ * MOTOR A (Izquierdo):
+ * --------------------
+ * Arduino Pin | Función      | Conexión Driver
+ * ------------|--------------|----------------
+ * D5          | PWMA         | Pin PWM Motor A
+ * D4          | AIN1         | Dirección A1
+ * D9          | AIN2         | Dirección A2
+ * ---         | MA1/MA2      | Cables del Motor A
+ * 
+ * MOTOR B (Derecho):
+ * ------------------
+ * Arduino Pin | Función      | Conexión Driver
+ * ------------|--------------|----------------
+ * D6          | PWMB         | Pin PWM Motor B
+ * D7          | BIN1         | Dirección B1
+ * D8          | BIN2         | Dirección B2
+ * ---         | MB1/MB2      | Cables del Motor B
+ * 
+ * ALIMENTACIÓN:
+ * -------------
+ * Batería (+) → VCC del driver (6-8.4V)
+ * Batería (-) → GND (común con Arduino)
+ * Arduino 5V  → Regulador interno (máx 500mA para sensores)
+ * 
+ * =============================================
+ * LÓGICA DE CONTROL
+ * =============================================
+ * 
+ * Para hacer girar un motor:
+ * 
+ * ADELANTE:
+ *   AIN1 = HIGH, AIN2 = LOW, PWMA = 0-255
+ * 
+ * ATRÁS:
+ *   AIN1 = LOW, AIN2 = HIGH, PWMA = 0-255
+ * 
+ * FRENO (cortocircuito):
+ *   AIN1 = HIGH, AIN2 = HIGH, PWMA = 255
+ * 
+ * PARAR (flotante):
+ *   AIN1 = LOW, AIN2 = LOW, PWMA = 0
+ * 
+ * =============================================
+ * NOTAS IMPORTANTES
+ * =============================================
+ * 
+ * 1. El TB6612FNG es MÁS EFICIENTE que el L298N
+ *    - Menor caída de voltaje
+ *    - Menos calentamiento
+ *    - Mejor para robots pequeños
+ * 
+ * 2. NO necesita pin ENABLE separado
+ *    - El PWM controla directamente la velocidad
+ * 
+ * 3. Protecciones integradas:
+ *    - Sobrecorriente
+ *    - Sobrecalentamiento
+ *    - Cortocircuito
+ * 
+ * 4. Si los motores van al revés:
+ *    - Intercambia MA1 con MA2 (o MB1 con MB2)
+ *    - O invierte en el código (AIN1 ↔ AIN2)
+ * 
+ * =============================================
+ */
+
+// NO ES UN SKETCH EJECUTABLE
+// Este es solo un archivo de referencia

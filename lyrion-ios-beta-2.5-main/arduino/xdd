@@ -1,0 +1,120 @@
+// --- DEFINICIÓN DE PINES ---
+// Motor A (Izquierdo)
+#define AIN1 9 
+#define AIN2 4 
+#define PWMA 5
+
+// Motor B (Derecho)
+#define BIN1 7 
+#define BIN2 8 
+#define PWMB 6
+
+char comando;
+int velocidadAlta = 255;  // Máxima velocidad PWM
+int velocidadBaja = 130;  // Velocidad reducida PWM
+
+void setup() {
+  // Configurar pines como salida
+  pinMode(AIN1, OUTPUT);
+  pinMode(AIN2, OUTPUT);
+  pinMode(PWMA, OUTPUT);
+  pinMode(BIN1, OUTPUT);
+  pinMode(BIN2, OUTPUT);
+  pinMode(PWMB, OUTPUT);
+
+
+
+
+
+  Serial.begin(9600);
+  Serial.println("Robot Soccer listo");
+  Serial.println("Comandos: F,f,B,b,L,l,R,r,S");
+}
+
+void loop() {
+  if (Serial.available()) {
+    comando = Serial.read();
+    detenerMotores(); // detener antes de cambiar dirección
+
+    switch (comando) {
+      case 'F': adelante(velocidadAlta); break;
+      case 'f': adelante(velocidadBaja); break;
+      case 'B': atras(velocidadAlta); break;
+      case 'b': atras(velocidadBaja); break;
+      case 'L': izquierda(velocidadAlta); break;
+      case 'l': izquierda(velocidadBaja); break;
+      case 'R': derecha(velocidadAlta); break;
+      case 'r': derecha(velocidadBaja); break;
+      case 'S': detenerMotores(); break;
+    }
+  }
+}
+
+// --- FUNCIONES DE MOVIMIENTO --- 
+void adelante(int vel) {
+  // Motor A
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+  analogWrite(PWMA, vel);
+
+  // Motor B
+  digitalWrite(BIN1, HIGH);
+  digitalWrite(BIN2, LOW);
+  analogWrite(PWMB, vel);
+
+  Serial.println("Avanzando...");
+}
+
+void atras(int vel) {
+  // Motor A
+  digitalWrite(AIN1, LOW);
+  digitalWrite(AIN2, HIGH);
+  analogWrite(PWMA, vel);
+
+  // Motor B
+  digitalWrite(BIN1, LOW);
+  digitalWrite(BIN2, HIGH);
+  analogWrite(PWMB, vel);
+
+  Serial.println("Retrocediendo...");
+}
+
+void izquierda(int vel) {
+  // Motor A retrocede
+  digitalWrite(AIN1, LOW);
+  digitalWrite(AIN2, HIGH);
+  analogWrite(PWMA, vel);
+
+  // Motor B avanza
+  digitalWrite(BIN1, HIGH);
+  digitalWrite(BIN2, LOW);
+  analogWrite(PWMB, vel);
+
+  Serial.println("Girando izquierda...");
+}
+
+void derecha(int vel) {
+  // Motor A avanza
+  digitalWrite(AIN1, HIGH);
+  digitalWrite(AIN2, LOW);
+  analogWrite(PWMA, vel);
+
+  // Motor B retrocede
+  digitalWrite(BIN1, LOW);
+  digitalWrite(BIN2, HIGH);
+  analogWrite(PWMB, vel);
+
+  Serial.println("Girando derecha...");
+}
+
+void detenerMotores() {
+  digitalWrite(AIN1, LOW);
+  digitalWrite(AIN2, LOW);
+  analogWrite(PWMA, 0);
+
+  digitalWrite(BIN1, LOW);
+  digitalWrite(BIN2, LOW);
+  analogWrite(PWMB, 0);
+
+  Serial.println("Stop.");
+}

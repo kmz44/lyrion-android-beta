@@ -1,17 +1,11 @@
-/*
- *
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- */
-
 package io.orabel.orabelandroid.ui.screens.chat
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +23,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -40,6 +38,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -57,6 +59,7 @@ import io.orabel.orabelandroid.ui.theme.AppFontFamily
 import io.orabel.orabelandroid.ui.theme.InterFontFamily
 import io.orabel.orabelandroid.ui.theme.OrabelDanger
 import io.orabel.orabelandroid.ui.theme.OrabelPrimary
+import io.orabel.orabelandroid.ui.theme.OrabelAccent
 import io.orabel.orabelandroid.ui.theme.OrabelTextPrimary
 import io.orabel.orabelandroid.ui.theme.OrabelTextSecondary
 import java.io.File
@@ -70,6 +73,12 @@ fun SelectModelsList(
     showModelDeleteIcon: Boolean = true,
 ) {
     val context = LocalContext.current
+    
+    // Separar modelos offline y online
+    val offlineModels = modelsList.filter { File(it.path).exists() }
+    val onlineModels = modelsList.filter { !File(it.path).exists() }
+    
+    var showOnlineModels by remember { mutableStateOf(false) }
     
     Popup(
         onDismissRequest = onDismissRequest,
@@ -122,18 +131,100 @@ fun SelectModelsList(
                     )
                 }
 
-                // Lista de modelos disponibles
-                if (modelsList.isNotEmpty()) {
-                    modelsList.forEach { model ->
+                // SECCIÓN MODELOS OFFLINE (Prioridad)
+                if (offlineModels.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.CloudOff,
+                            contentDescription = null,
+                            tint = OrabelPrimary,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "📴 Modelos Offline",
+                            fontFamily = AppFontFamily,
+                            fontWeight = FontWeight.Bold,
+                            color = OrabelPrimary,
+                            fontSize = 14.sp
+                        )
+                    }
+                    
+                    offlineModels.forEach { model ->
                         ModelOptionItem(
                             model = model,
                             onModelListItemClick = onModelListItemClick,
                             onModelDeleteClick = onModelDeleteClick,
                             showModelDeleteIcon = showModelDeleteIcon,
+                            isOffline = true
                         )
                     }
                     
-                    // Separador antes del botón "Cargar"
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // SECCIÓN MODELOS ONLINE (Minimizable)
+                if (onlineModels.isNotEmpty()) {
+                    // Header clickeable para expandir/contraer
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showOnlineModels = !showOnlineModels }
+                            .background(
+                                Color(0xFFFEF3C7),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Cloud,
+                                contentDescription = null,
+                                tint = Color(0xFFD97706),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "☁️ Modelos Online (${onlineModels.size})",
+                                fontFamily = AppFontFamily,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFD97706),
+                                fontSize = 14.sp
+                            )
+                        }
+                        Icon(
+                            if (showOnlineModels) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = Color(0xFFD97706),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    // Lista expandible de modelos online
+                    AnimatedVisibility(
+                        visible = showOnlineModels,
+                        enter = expandVertically() + fadeIn(),
+                        exit = shrinkVertically() + fadeOut()
+                    ) {
+                        Column {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            onlineModels.forEach { model ->
+                                ModelOptionItem(
+                                    model = model,
+                                    onModelListItemClick = onModelListItemClick,
+                                    onModelDeleteClick = onModelDeleteClick,
+                                    showModelDeleteIcon = showModelDeleteIcon,
+                                    isOffline = false
+                                )
+                            }
+                        }
+                    }
+                    
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
@@ -141,7 +232,7 @@ fun SelectModelsList(
                 Button(
                     onClick = {
                         Intent(context, ModernModelSetupActivity::class.java).also {
-                            it.putExtra("openChatScreen", true) // Cambiar a true para abrir chat automáticamente
+                            it.putExtra("openChatScreen", true)
                             context.startActivity(it)
                         }
                         onDismissRequest()
@@ -166,7 +257,7 @@ fun SelectModelsList(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Cargar",
+                            text = "Cargar Nuevo Modelo",
                             fontFamily = AppFontFamily,
                             color = MaterialTheme.colorScheme.onPrimary,
                             fontSize = 16.sp,
@@ -185,10 +276,10 @@ private fun ModelOptionItem(
     onModelListItemClick: (LLMModel) -> Unit,
     onModelDeleteClick: (LLMModel) -> Unit,
     showModelDeleteIcon: Boolean,
+    isOffline: Boolean
 ) {
     val context = LocalContext.current
     
-    // Model selection option - like ChatMoreOptionsPopup items
     TextButton(
         onClick = {
             onModelListItemClick(model)
@@ -206,11 +297,13 @@ private fun ModelOptionItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                Icon(
-                    Icons.Default.SmartToy,
-                    contentDescription = null,
-                    tint = OrabelPrimary,
-                    modifier = Modifier.size(20.dp)
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(
+                            if (isOffline) OrabelPrimary else Color(0xFFD97706),
+                            CircleShape
+                        )
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
@@ -218,18 +311,27 @@ private fun ModelOptionItem(
                         text = model.name,
                         fontFamily = AppFontFamily,
                         color = MaterialTheme.colorScheme.onSurface,
-                        fontSize = 16.sp
+                        fontSize = 16.sp,
+                        fontWeight = if (isOffline) FontWeight.Medium else FontWeight.Normal
                     )
                     Text(
-                        text = "%.1f GB".format(File(model.path).length() / (1e+9)),
+                        text = if (isOffline) {
+                            "%.1f GB • Disponible".format(File(model.path).length() / (1e+9))
+                        } else {
+                            "Requiere descarga"
+                        },
                         fontFamily = AppFontFamily,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        color = if (isOffline) {
+                            OrabelPrimary.copy(alpha = 0.7f)
+                        } else {
+                            Color(0xFFD97706).copy(alpha = 0.7f)
+                        },
                         fontSize = 12.sp
                     )
                 }
             }
             
-            if (showModelDeleteIcon) {
+            if (showModelDeleteIcon && isOffline) {
                 IconButton(
                     onClick = {
                         createAlertDialog(

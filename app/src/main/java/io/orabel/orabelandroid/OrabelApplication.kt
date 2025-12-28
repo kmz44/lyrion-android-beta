@@ -3,7 +3,11 @@ package io.orabel.orabelandroid
 import android.app.Application
 import android.os.StrictMode
 import android.util.Log
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ProcessLifecycleOwner
 import io.orabel.orabelandroid.data.ObjectBoxStore
+import io.orabel.orabelandroid.data.social.SocialRepository
 import io.orabel.orabelandroid.stt.SttRepository
 import io.orabel.orabelandroid.tts.TtsRepository
 import io.orabel.orabelandroid.utils.MemoryLeakDetector
@@ -11,25 +15,40 @@ import io.orabel.orabelandroid.utils.PerformanceUtils
 import io.orabel.orabelandroid.utils.GlobalExceptionHandler
 import io.orabel.orabelandroid.utils.AsyncFileOperations
 import io.orabel.orabelandroid.utils.ReceiverManager
+import io.orabel.orabelandroid.auth.SupabaseClient
 import org.koin.android.ext.android.inject
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.ksp.generated.module
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
-class OrabelApplication : Application() {
+class OrabelApplication : Application(), DefaultLifecycleObserver {
+    
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     
     companion object {
         private const val TAG = "OrabelApplication"
     }
     
     override fun onCreate() {
-        super.onCreate()
+        super<Application>.onCreate()
         
         Log.d(TAG, "Application starting")
         
         // Install global exception handler first
         GlobalExceptionHandler.install()
+        
+        // Inicializar Supabase con persistencia de sesión
+        try {
+            SupabaseClient.init(this)
+            Log.d(TAG, "Supabase initialized with session persistence")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing Supabase", e)
+        }
         
         // Optimize Compose Snapshot system
         // Note: Snapshot optimizations are handled automatically in newer versions
@@ -71,14 +90,52 @@ class OrabelApplication : Application() {
         }
         
         try {
+            // CRÍTICO: Inicializar ObjectBox ANTES de Koin
+            // porque provideBoxStore() necesita ObjectBoxStore.store
+            ObjectBoxStore.init(this)
+            
             startKoin {
                 androidContext(this@OrabelApplication)
                 modules(KoinAppModule().module)
             }
-            ObjectBoxStore.init(this)
+            
+            // Register lifecycle observer to handle app foreground/background
+            ProcessLifecycleOwner.get().lifecycle.addObserver(this)
+            Log.d(TAG, "🔄 Lifecycle observer registered for app foreground/background detection")
+            
             Log.d(TAG, "Application initialized successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Error during application initialization", e)
+        }
+    }
+    
+    // Called when app comes to FOREGROUND (any activity visible)
+    override fun onStart(owner: LifecycleOwner) {
+        super<DefaultLifecycleObserver>.onStart(owner)
+        Log.d(TAG, "🟢 App moved to FOREGROUND")
+        applicationScope.launch {
+            try {
+                val socialRepository: SocialRepository by inject()
+                socialRepository.updateUserStatus("online")
+                Log.d(TAG, "✅ User status updated to: online")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error updating status to online: ${e.message}")
+            }
+        }
+    }
+    
+    // Called when app goes to BACKGROUND (no activities visible)
+    override fun onStop(owner: LifecycleOwner) {
+        super<DefaultLifecycleObserver>.onStop(owner)
+        Log.d(TAG, "🔴 App moved to BACKGROUND")
+        applicationScope.launch {
+            try {
+                val socialRepository: SocialRepository by inject()
+                socialRepository.updateUserStatus("offline")
+                Log.d(TAG, "✅ User status updated to: offline")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ Error updating status to offline: ${e.message}")
+            }
         }
     }
     
@@ -91,12 +148,12 @@ class OrabelApplication : Application() {
         } catch (e: Exception) {
             Log.e(TAG, "Error during application termination", e)
         } finally {
-            super.onTerminate()
+            super<Application>.onTerminate()
         }
     }
     
     override fun onLowMemory() {
-        super.onLowMemory()
+        super<Application>.onLowMemory()
         Log.w(TAG, "Low memory warning - cleaning up resources")
         try {
             // Force garbage collection

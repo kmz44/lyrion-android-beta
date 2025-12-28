@@ -1,0 +1,182 @@
+=============================================
+GUÍA COMPLETA - CONFIGURACIÓN BLUETOOTH
+Módulo de 4 patas HC-05 / HC-06
+=============================================
+
+📌 IDENTIFICAR TU MÓDULO
+=============================================
+
+Tu módulo tiene 4 pines:
+1. VCC  → Alimentación (3.3V o 5V)
+2. GND  → Tierra
+3. TXD  → Transmisión de datos
+4. RXD  → Recepción de datos
+
+Diferencias HC-05 vs HC-06:
+• HC-05: Maestro/Esclavo, más comandos AT
+• HC-06: Solo esclavo, configuración más simple
+
+🔌 CONEXIÓN FÍSICA
+=============================================
+
+Bluetooth Module  →  Arduino Nano
+----------------     ------------
+VCC (marcado)    →   5V
+GND (marcado)    →   GND
+TXD (marcado)    →   D0 (RX)
+RXD (marcado)    →   D1 (TX)
+
+⚠️ IMPORTANTE:
+- Para subir código: DESCONECTA el Bluetooth
+- Para configurar: RECONECTA después de subir
+
+📋 MÉTODO 1: CONFIGURACIÓN AUTOMÁTICA
+=============================================
+
+PASO 1: Subir el configurador
+   1. DESCONECTA el módulo Bluetooth
+   2. Abre: configurar_bluetooth.ino
+   3. Sube el código al Arduino
+   4. Espera a que termine
+
+PASO 2: Configurar
+   1. RECONECTA el módulo Bluetooth
+   2. Abre Serial Monitor (9600 baudios)
+   3. El código detectará automáticamente el módulo
+   4. Sigue las instrucciones en pantalla
+
+PASO 3: Verificar
+   El módulo quedará configurado como:
+   • Nombre: ROBOT_SOCCER
+   • PIN: 1234
+   • Velocidad: 9600 baudios
+
+⌨️ MÉTODO 2: CONFIGURACIÓN MANUAL (Terminal AT)
+=============================================
+
+PASO 1: Subir terminal AT
+   1. DESCONECTA el módulo Bluetooth
+   2. Abre: terminal_at_bluetooth.ino
+   3. Sube el código
+   4. RECONECTA el módulo Bluetooth
+
+PASO 2: Abrir Serial Monitor
+   1. Abre Serial Monitor (9600 baudios)
+   2. Selecciona "Both NL & CR" (abajo a la derecha)
+   3. Verás el menú de comandos
+
+PASO 3: Probar conexión
+   Envía: AT
+   Debe responder: OK
+
+PASO 4: Configurar nombre
+   Envía: AT+NAME=ROBOT_SOCCER
+   Respuesta: OKsetname
+
+PASO 5: Configurar PIN
+   Envía: AT+PIN=1234
+   Respuesta: OKsetPIN
+
+PASO 6: Configurar velocidad
+   Envía: AT+BAUD4
+   Respuesta: OK9600
+
+📝 COMANDOS AT ÚTILES
+=============================================
+
+INFORMACIÓN:
+AT              → Test (debe responder OK)
+AT+VERSION      → Ver versión del firmware
+AT+ADDR         → Ver dirección MAC
+
+CONFIGURACIÓN BÁSICA:
+AT+NAME=nombre  → Cambiar nombre (máx 20 caracteres)
+AT+PIN=1234     → Cambiar PIN (4-6 dígitos)
+
+VELOCIDAD (BAUDRATE):
+AT+BAUD1        → 1200 baudios
+AT+BAUD2        → 2400 baudios
+AT+BAUD3        → 4800 baudios
+AT+BAUD4        → 9600 baudios  ← Recomendado
+AT+BAUD5        → 19200 baudios
+AT+BAUD6        → 38400 baudios
+AT+BAUD7        → 57600 baudios
+AT+BAUD8        → 115200 baudios
+
+RESET:
+AT+RESET        → Reiniciar módulo
+AT+ORGL         → Restaurar configuración de fábrica
+
+🔧 SOLUCIÓN DE PROBLEMAS
+=============================================
+
+Problema: No responde a comandos AT
+Solución:
+  • Verifica conexiones (TXD ↔ RX, RXD ↔ TX)
+  • Prueba diferentes baudrates
+  • Para HC-05: Activa "Both NL & CR"
+  • Asegúrate que el LED parpadea
+
+Problema: Responde pero no guarda la configuración
+Solución:
+  • Algunos módulos necesitan desconectar y reconectar
+  • Envía AT+RESET después de configurar
+
+Problema: LED no parpadea
+Solución:
+  • Verifica alimentación VCC y GND
+  • Módulo puede estar dañado o en modo programación
+
+Problema: No aparece en el móvil
+Solución:
+  • Espera 30 segundos después de encender
+  • Verifica que el LED parpadea rápido (no conectado)
+  • Reinicia el Bluetooth del móvil
+
+📱 EMPAREJAR CON MÓVIL
+=============================================
+
+Android:
+1. Configuraciones → Bluetooth
+2. Buscar dispositivos
+3. Seleccionar "ROBOT_SOCCER"
+4. Introducir PIN: 1234
+5. Esperar confirmación
+
+iPhone/iOS:
+⚠️ iOS no soporta perfiles SPP (Serial Port Profile)
+Solo funciona con apps especiales o módulos BLE
+
+🎯 VALORES RECOMENDADOS PARA EL ROBOT
+=============================================
+
+Nombre:     ROBOT_SOCCER
+PIN:        1234
+Baudrate:   9600 (compatible con todo)
+Modo:       Esclavo (slave)
+
+✅ VERIFICACIÓN FINAL
+=============================================
+
+[ ] Módulo responde a AT
+[ ] Nombre cambiado a ROBOT_SOCCER
+[ ] PIN configurado como 1234
+[ ] Velocidad en 9600 baudios
+[ ] Módulo visible desde el móvil
+[ ] Se puede emparejar con PIN 1234
+
+Si todo está ✓, ¡listo para usar con el robot!
+
+🚀 SIGUIENTE PASO
+=============================================
+
+1. Desconecta el cable USB del Arduino
+2. Sube el código: robot_soccer_bluetooth.ino
+   (Recuerda desconectar el Bluetooth para subirlo)
+3. Reconecta el Bluetooth
+4. Conecta la batería al robot
+5. Empareja desde tu móvil
+6. Usa la app de control
+7. ¡Disfruta tu robot! 🤖
+
+=============================================

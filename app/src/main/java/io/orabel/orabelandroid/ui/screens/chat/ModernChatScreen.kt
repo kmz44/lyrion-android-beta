@@ -35,7 +35,7 @@ fun ModernChatScreen(
     onSendMessage: (String) -> Unit
 ) {
     var inputText by remember { mutableStateOf("") }
-    var selectedBottomNav by remember { mutableStateOf(2) }
+    var selectedBottomNav by remember { mutableStateOf(1) } // Chat ahora es índice 1
     
     Column(
         modifier = Modifier

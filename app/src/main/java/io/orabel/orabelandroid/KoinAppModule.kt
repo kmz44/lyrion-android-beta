@@ -12,6 +12,10 @@
 package io.orabel.orabelandroid
 
 import android.content.Context
+import io.orabel.orabelandroid.data.HealthDiaryRepository
+import io.orabel.orabelandroid.data.UserMedicalProfileRepository
+import io.orabel.orabelandroid.health.HealthReportGenerator
+import io.orabel.orabelandroid.health.LocalHealthServer
 import io.orabel.orabelandroid.translation.TranslationRepository
 import io.orabel.orabelandroid.tts.TtsRepository
 import io.orabel.orabelandroid.stt.OfflineSttRepository
@@ -36,4 +40,32 @@ fun provideTtsRepository(context: Context): TtsRepository {
 @Single
 fun provideSttRepository(context: Context): OfflineSttRepository {
     return OfflineSttRepository(context)
+}
+
+@Single
+fun provideHealthDiaryRepository(context: Context): HealthDiaryRepository {
+    return HealthDiaryRepository(context)
+}
+
+@Single
+fun provideHealthReportGenerator(
+    healthDiaryRepository: HealthDiaryRepository,
+    userMedicalProfileRepository: UserMedicalProfileRepository
+): HealthReportGenerator {
+    return HealthReportGenerator(healthDiaryRepository, userMedicalProfileRepository)
+}
+
+@Single
+fun provideLocalHealthServer(context: Context): LocalHealthServer {
+    return LocalHealthServer(context)
+}
+
+@Single
+fun provideUserMedicalProfileBox(): io.objectbox.Box<io.orabel.orabelandroid.data.UserMedicalProfile> {
+    return io.orabel.orabelandroid.data.ObjectBoxStore.store.boxFor(io.orabel.orabelandroid.data.UserMedicalProfile::class.java)
+}
+
+@Single
+fun provideBoxStore(): io.objectbox.BoxStore {
+    return io.orabel.orabelandroid.data.ObjectBoxStore.store
 }

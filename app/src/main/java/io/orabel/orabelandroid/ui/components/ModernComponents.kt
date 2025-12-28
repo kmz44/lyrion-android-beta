@@ -1,13 +1,20 @@
 package io.orabel.orabelandroid.ui.components
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,11 +22,43 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.orabel.orabelandroid.ui.theme.PrimaryColor
 import io.orabel.orabelandroid.ui.theme.TextSecondary
+
+/**
+ * Modificador que permite detectar gestos de swipe horizontal para navegar entre pantallas.
+ * @param currentIndex Índice actual de la pantalla (0-4)
+ * @param onSwipeLeft Llamado cuando se desliza hacia la izquierda (ir a la siguiente pantalla)
+ * @param onSwipeRight Llamado cuando se desliza hacia la derecha (ir a la pantalla anterior)
+ */
+fun Modifier.swipeableNavigation(
+    currentIndex: Int,
+    onSwipeLeft: () -> Unit,
+    onSwipeRight: () -> Unit,
+    swipeThreshold: Float = 100f
+): Modifier = this.pointerInput(currentIndex) {
+    var totalDrag = 0f
+    detectHorizontalDragGestures(
+        onDragEnd = {
+            if (totalDrag < -swipeThreshold && currentIndex < 4) {
+                // Swipe hacia la izquierda -> ir a la siguiente pantalla
+                onSwipeLeft()
+            } else if (totalDrag > swipeThreshold && currentIndex > 0) {
+                // Swipe hacia la derecha -> ir a la pantalla anterior
+                onSwipeRight()
+            }
+            totalDrag = 0f
+        },
+        onDragCancel = { totalDrag = 0f },
+        onHorizontalDrag = { _, dragAmount ->
+            totalDrag += dragAmount
+        }
+    )
+}
 
 @Composable
 fun ModernTopBar(
@@ -123,6 +162,76 @@ fun ModernCard(
             modifier = Modifier.padding(20.dp),
             content = content
         )
+    }
+}
+
+@Composable
+fun ModernCard(
+    title: String,
+    description: String? = null,
+    icon: ImageVector? = null,
+    primaryActionText: String? = null,
+    onPrimaryActionClick: (() -> Unit)? = null,
+    secondaryActionText: String? = null,
+    onSecondaryActionClick: (() -> Unit)? = null,
+    modifier: Modifier = Modifier,
+    elevation: Int = 4,
+    backgroundColor: Color = MaterialTheme.colorScheme.surface,
+    onClick: (() -> Unit)? = null,
+) {
+    ModernCard(
+        modifier = modifier,
+        onClick = onClick,
+        elevation = elevation,
+        backgroundColor = backgroundColor
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (icon != null) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .size(28.dp)
+                            .padding(end = 8.dp)
+                    )
+                }
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+            if (!description.isNullOrBlank()) {
+                Text(
+                    text = description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (primaryActionText != null || secondaryActionText != null) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (primaryActionText != null && onPrimaryActionClick != null) {
+                        ModernButton(
+                            text = primaryActionText,
+                            onClick = onPrimaryActionClick,
+                            style = ButtonStyle.Primary
+                        )
+                    }
+                    if (secondaryActionText != null && onSecondaryActionClick != null) {
+                        ModernButton(
+                            text = secondaryActionText,
+                            onClick = onSecondaryActionClick,
+                            style = ButtonStyle.Secondary
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -252,68 +361,131 @@ enum class ButtonStyle {
 fun ModernBottomNavigation(
     selectedItem: Int,
     onItemSelected: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isGlassStyle: Boolean = false
 ) {
-    Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .navigationBarsPadding(),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-        shadowElevation = 8.dp
-    ) {
-        Box(
-            modifier = Modifier
+    if (isGlassStyle) {
+        // Estilo Liquid Glass (Layout idéntico al original, solo cambia estética)
+        Surface(
+            modifier = modifier
                 .fillMaxWidth()
-                .height(80.dp)
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                            MaterialTheme.colorScheme.surface
-                        )
-                    )
-                )
+                .navigationBarsPadding(),
+            color = Color.Transparent, // Fondo transparente base
         ) {
-            Row(
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(Color.Black.copy(alpha = 0.3f)) // Fondo semitransparente oscuro
+                    .border(
+                         BorderStroke(
+                            width = 1.dp, 
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.White.copy(alpha = 0.3f), 
+                                    Color.White.copy(alpha = 0.05f)
+                                )
+                            )
+                         )
+                    )
             ) {
-                // Inicio
-                NavigationItem(
-                    icon = Icons.Default.Home,
-                    label = "Inicio",
-                    selected = selectedItem == 0,
-                    onClick = { onItemSelected(0) }
-                )
-                
-                // Búsqueda
-                NavigationItem(
-                    icon = Icons.Default.Search,
-                    label = "Búsqueda",
-                    selected = selectedItem == 1,
-                    onClick = { onItemSelected(1) }
-                )
-                
-                // Chat 
-                NavigationItem(
-                    icon = Icons.Default.Chat,
-                    label = "Chat",
-                    selected = selectedItem == 2,
-                    onClick = { onItemSelected(2) }
-                )
-                
-                // Perfil
-                NavigationItem(
-                    icon = Icons.Default.Person,
-                    label = "Perfil",
-                    selected = selectedItem == 3,
-                    onClick = { onItemSelected(3) }
+                NavigationItemsRow(
+                    selectedItem = selectedItem,
+                    onItemSelected = onItemSelected,
+                    unselectedColor = Color.White.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
                 )
             }
         }
+    } else {
+        // Estilo Original
+        Surface(
+            modifier = modifier
+                .fillMaxWidth()
+                .navigationBarsPadding(),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            shadowElevation = 8.dp
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(80.dp)
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                                MaterialTheme.colorScheme.surface
+                            )
+                        )
+                    )
+            ) {
+                NavigationItemsRow(
+                    selectedItem = selectedItem,
+                    onItemSelected = onItemSelected,
+                    unselectedColor = TextSecondary,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NavigationItemsRow(
+    selectedItem: Int,
+    onItemSelected: (Int) -> Unit,
+    unselectedColor: Color,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Búsqueda
+        NavigationItem(
+            icon = Icons.Default.Search,
+            label = "Búsqueda",
+            selected = selectedItem == 0,
+            onClick = { onItemSelected(0) },
+            unselectedColor = unselectedColor
+        )
+        
+        // Chat 
+        NavigationItem(
+            icon = Icons.Default.Chat,
+            label = "Chat",
+            selected = selectedItem == 1,
+            onClick = { onItemSelected(1) },
+            unselectedColor = unselectedColor
+        )
+        
+        // Inicio
+        NavigationItem(
+            icon = Icons.Default.Home,
+            label = "Inicio",
+            selected = selectedItem == 2,
+            onClick = { onItemSelected(2) },
+            unselectedColor = unselectedColor
+        )
+        
+        // Historial (Antes Calendario)
+        NavigationItem(
+            icon = Icons.Default.History, // Icono Historial
+            label = "Historial",
+            selected = selectedItem == 3,
+            onClick = { onItemSelected(3) },
+            unselectedColor = unselectedColor
+        )
+        
+        // Perfil
+        NavigationItem(
+            icon = Icons.Default.Person,
+            label = "Perfil",
+            selected = selectedItem == 4,
+            onClick = { onItemSelected(4) },
+            unselectedColor = unselectedColor
+        )
     }
 }
 
@@ -322,7 +494,8 @@ private fun NavigationItem(
     icon: ImageVector,
     label: String,
     selected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    unselectedColor: Color
 ) {
     Column(
         modifier = Modifier
@@ -334,7 +507,7 @@ private fun NavigationItem(
         Icon(
             imageVector = icon,
             contentDescription = label,
-            tint = if (selected) PrimaryColor else TextSecondary,
+            tint = if (selected) PrimaryColor else unselectedColor,
             modifier = Modifier.size(24.dp)
         )
         
@@ -342,7 +515,7 @@ private fun NavigationItem(
             text = label,
             style = MaterialTheme.typography.labelSmall.copy(
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                color = if (selected) PrimaryColor else TextSecondary
+                color = if (selected) PrimaryColor else unselectedColor
             )
         )
     }

@@ -59,6 +59,8 @@ import io.orabel.orabelandroid.ui.components.showProgressDialog
 import io.orabel.orabelandroid.ui.components.ModernBottomNavigation
 import io.orabel.orabelandroid.ui.screens.chat.ChatActivity
 import io.orabel.orabelandroid.ui.screens.main.ModernMainActivity
+import io.orabel.orabelandroid.ui.screens.search.SearchActivity
+import io.orabel.orabelandroid.ui.screens.calendar.CalendarActivity
 import io.orabel.orabelandroid.ui.screens.welcome.WelcomeActivity
 import io.orabel.orabelandroid.ui.theme.*
 import kotlinx.coroutines.CoroutineScope
@@ -310,7 +312,9 @@ class ModernModelSetupActivity : ComponentActivity(), KoinComponent {
                         },
                         onBackPressed = { finish() },
                         onNavigateToHome = { openMainActivity() },
+                        onNavigateToSearch = { openSearchActivity() },
                         onNavigateToChat = { openChat() },
+                        onNavigateToCalendar = { openCalendarActivity() },
                         onNavigateToProfile = { openProfile() }
                     )
                     AppProgressDialog()
@@ -330,6 +334,18 @@ class ModernModelSetupActivity : ComponentActivity(), KoinComponent {
         startActivity(intent)
     }
     
+    private fun openSearchActivity() {
+        val intent = Intent(this, SearchActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+    
+    private fun openCalendarActivity() {
+        val intent = Intent(this, CalendarActivity::class.java)
+        startActivity(intent)
+        finish()
+    }
+    
     private fun openProfile() {
         val intent = Intent(this, WelcomeActivity::class.java)
         startActivity(intent)
@@ -341,11 +357,13 @@ fun ModernModelSetupScreen(
     onSelectFile: () -> Unit,
     onBackPressed: () -> Unit,
     onNavigateToHome: () -> Unit,
+    onNavigateToSearch: () -> Unit,
     onNavigateToChat: () -> Unit,
+    onNavigateToCalendar: () -> Unit,
     onNavigateToProfile: () -> Unit
 ) {
     var scale by remember { mutableFloatStateOf(0f) }
-    var selectedBottomNav by remember { mutableStateOf(1) } // Búsqueda seleccionada
+    var selectedBottomNav by remember { mutableStateOf(2) } // Chat seleccionado (importar modelos es función de chat)
     var showAvailableModels by remember { mutableStateOf(false) }
     val context = LocalContext.current
     
@@ -499,9 +517,10 @@ fun ModernModelSetupScreen(
                 selectedBottomNav = index
                 when (index) {
                     0 -> onNavigateToHome() // Home
-                    1 -> { /* Búsqueda - ya estamos aquí */ }
-                    2 -> onNavigateToChat() // Chat
-                    3 -> onNavigateToProfile() // Perfil
+                    1 -> onNavigateToSearch() // Búsqueda
+                    2 -> { /* Chat - ya estamos en función de chat (importar modelos) */ }
+                    3 -> onNavigateToCalendar() // Calendario
+                    4 -> onNavigateToProfile() // Perfil
                 }
             }
         )

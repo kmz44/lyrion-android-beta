@@ -10,6 +10,25 @@
 				"$javac"
 			],
 			"args": []
+		},
+		{
+			"label": "Compilar app Lyrion-main",
+			"type": "shell",
+			"command": "./gradlew :app:assembleDebug",
+			"args": [],
+			"problemMatcher": [
+				"$javac"
+			]
+		},
+		{
+			"label": "Compilar app GeminiLive",
+			"type": "shell",
+			"command": "./gradlew :app:assembleDebug",
+			"isBackground": false,
+			"problemMatcher": [
+				"$gradle"
+			],
+			"group": "build"
 		}
 	]
 }

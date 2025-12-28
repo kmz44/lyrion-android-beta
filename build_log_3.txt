@@ -1,0 +1,77 @@
+
+The Kotlin Gradle plugin was loaded multiple times in different subprojects, which is not supported and may break the build. 
+This might happen in subprojects that apply the Kotlin plugins with the Gradle 'plugins { ... }' DSL if they specify explicit versions, even if the versions are equal.
+Please add the Kotlin plugin to the common parent project or the root project, then remove the versions in the subprojects.
+If the parent project does not need the plugin, add 'apply false' to the plugin line.
+See: https://docs.gradle.org/current/userguide/plugins.html#sec:subprojects_plugins_dsl
+The Kotlin plugin was loaded in the following projects: ':app', ':orabel'
+> Task :orabel:preBuild UP-TO-DATE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :orabel:preDebugBuild UP-TO-DATE
+
+> Task :app:downloadVoskModel
+✅ Modelo OFFLINE ya configurado
+
+> Task :orabel:generateDebugResValues UP-TO-DATE
+> Task :app:objectboxPrepareBuild UP-TO-DATE
+> Task :app:preBuild
+> Task :app:preDebugBuild
+> Task :orabel:generateDebugResources UP-TO-DATE
+> Task :orabel:packageDebugResources UP-TO-DATE
+> Task :orabel:parseDebugLocalResources UP-TO-DATE
+> Task :orabel:generateDebugRFile UP-TO-DATE
+> Task :orabel:writeDebugAarMetadata UP-TO-DATE
+> Task :orabel:extractDeepLinksDebug UP-TO-DATE
+> Task :orabel:processDebugManifest UP-TO-DATE
+> Task :orabel:compileDebugLibraryResources UP-TO-DATE
+> Task :orabel:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :orabel:compileDebugKotlin UP-TO-DATE
+> Task :orabel:javaPreCompileDebug UP-TO-DATE
+> Task :orabel:compileDebugJavaWithJavac NO-SOURCE
+> Task :orabel:bundleLibCompileToJarDebug UP-TO-DATE
+> Task :app:dataBindingMergeDependencyArtifactsDebug UP-TO-DATE
+> Task :app:generateDebugResValues UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:mergeDebugResources UP-TO-DATE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:dataBindingGenBaseClassesDebug UP-TO-DATE
+> Task :app:generateDebugBuildConfig UP-TO-DATE
+> Task :app:checkDebugAarMetadata UP-TO-DATE
+> Task :app:mapDebugSourceSetPaths UP-TO-DATE
+> Task :app:createDebugCompatibleScreenManifests UP-TO-DATE
+> Task :app:extractDeepLinksDebug UP-TO-DATE
+> Task :app:processDebugMainManifest UP-TO-DATE
+> Task :app:processDebugManifest UP-TO-DATE
+> Task :app:processDebugManifestForPackage UP-TO-DATE
+> Task :app:processDebugResources UP-TO-DATE
+
+> Task :app:kspDebugKotlin FAILED
+w: [ksp] [Experimental] Koin Configuration Check
+w: [ksp] [Experimental] Koin Configuration Check
+e: file:///C:/lyrio%20v4/lyrion%20v3/Lyrion-main/app/src/main/java/io/orabel/orabelandroid/ui/screens/search/tabs/FriendsDetailScreen.kt:535:2 Expecting '}'
+Kotlin build report is written to file:///C:/lyrio%20v4/lyrion%20v3/Lyrion-main/build/reports/kotlin-build/ORABEL%20Android-build-2025-12-27-00-40-53-0.txt
+Kotlin build report is written to file:///C:/lyrio%20v4/lyrion%20v3/Lyrion-main/build/reports/kotlin-build/ORABEL%20Android-build-2025-12-27-00-40-53-1.txt
+[Incubating] Problems report is available at: file:///C:/lyrio%20v4/lyrion%20v3/Lyrion-main/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:kspDebugKotlin'.
+> A failure occurred while executing org.jetbrains.kotlin.compilerRunner.GradleCompilerRunnerWithWorkers$GradleKotlinCompilerWorkAction
+   > Compilation error. See log for more details
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.11.1/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 7s
+31 actionable tasks: 2 executed, 29 up-to-date
