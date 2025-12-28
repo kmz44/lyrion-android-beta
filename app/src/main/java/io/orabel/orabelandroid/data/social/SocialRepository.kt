@@ -170,7 +170,8 @@ class SocialRepository private constructor(context: Context) {
             altura_cm = if (json.has("altura_cm") && !json.isNull("altura_cm")) json.getInt("altura_cm") else null,
             peso_kg = if (json.has("peso_kg") && !json.isNull("peso_kg")) json.getInt("peso_kg") else null,
             estadoCivil = optStringNullable("estado_civil"),
-            estadoRegion = optStringNullable("estado_region")
+            estadoRegion = optStringNullable("estado_region"),
+            status = optStringNullable("status")
         )
     }
     

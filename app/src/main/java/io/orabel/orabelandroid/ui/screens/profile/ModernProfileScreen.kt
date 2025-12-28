@@ -188,11 +188,26 @@ fun ModernProfileScreen(
                                         .padding(4.dp)
                                 ) {
                                     // STRICTLY SUPABASE DATA (No Google Auth Fallback)
-                                    io.orabel.orabelandroid.ui.screens.search.components.AvatarView(
-                                        url = fullProfile?.avatarUrl,
-                                        name = fullProfile?.username ?: "User",
-                                        size = 100
-                                    )
+                                    // Indicador de Estado Online (Círculo Verde)
+                                    val isOnline = fullProfile?.status != null && fullProfile?.status != "offline"
+                                    
+                                    Box {
+                                        io.orabel.orabelandroid.ui.screens.search.components.AvatarView(
+                                            url = fullProfile?.avatarUrl,
+                                            name = fullProfile?.username ?: "User",
+                                            size = 100
+                                        )
+                                        
+                                        if (isOnline) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(24.dp)
+                                                    .align(Alignment.BottomEnd)
+                                                    .border(3.dp, MaterialTheme.colorScheme.background, CircleShape)
+                                                    .background(Color(0xFF4CAF50), CircleShape) // Green.500
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -254,6 +269,50 @@ fun ModernProfileScreen(
 
                             // Actions Row
                             Spacer(modifier = Modifier.height(16.dp))
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Button(
+                                    onClick = { 
+                                        scope.launch {
+                                            val activityManager = io.orabel.orabelandroid.utils.UserActivityManager.getInstance(context)
+                                            activityManager.enterChat() // Fuerza estado Online
+                                            repository.fetchCurrentUserProfile() // Recargar para ver cambio visual
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (fullProfile?.status != "offline" && fullProfile?.status != null) 
+                                            Color(0xFF4CAF50).copy(alpha = 0.2f) else MaterialTheme.colorScheme.surfaceVariant
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Circle, contentDescription = null, 
+                                         tint = Color(0xFF4CAF50), modifier = Modifier.size(12.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Online", color = MaterialTheme.colorScheme.onSurface)
+                                }
+                                
+                                OutlinedButton(
+                                    onClick = { 
+                                        scope.launch {
+                                            val activityManager = io.orabel.orabelandroid.utils.UserActivityManager.getInstance(context)
+                                            activityManager.exitChat() // Fuerza estado Offline con debounce
+                                            repository.fetchCurrentUserProfile() 
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = if (fullProfile?.status == "offline") 
+                                            Color.Gray.copy(alpha = 0.2f) else Color.Transparent
+                                    )
+                                ) {
+                                    Icon(Icons.Default.Circle, contentDescription = null, 
+                                         tint = Color.Gray, modifier = Modifier.size(12.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Offline")
+                                }
+                            }
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Button(
                                     onClick = { /* TODO: Edit Profile */ },

@@ -152,11 +152,26 @@ fun UserProfileScreen(
                                     .background(MaterialTheme.colorScheme.background) // Border effect
                                     .padding(4.dp)
                             ) {
-                                AvatarView(
-                                    url = fullProfile.avatarUrl,
-                                    name = fullProfile.username,
-                                    size = 100
-                                )
+                                // Indicador de Estado Online (Círculo Verde)
+                                val isOnline = fullProfile.status != null && fullProfile.status != "offline"
+                                
+                                Box {
+                                    AvatarView(
+                                        url = fullProfile.avatarUrl,
+                                        name = fullProfile.username,
+                                        size = 100
+                                    )
+                                    
+                                    if (isOnline) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .align(Alignment.BottomEnd)
+                                                .border(3.dp, MaterialTheme.colorScheme.background, CircleShape)
+                                                .background(Color(0xFF4CAF50), CircleShape) // Green.500
+                                        )
+                                    }
+                                }
                             }
                         }
                     }

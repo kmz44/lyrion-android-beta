@@ -23,6 +23,7 @@ data class ProfileDTO(
     val peso_kg: Int? = null,
     val estadoCivil: String? = null,
     val estadoRegion: String? = null,
+    val status: String? = null,
     val createdAt: Date? = null
 ) {
     val displayName: String
