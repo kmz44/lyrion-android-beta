@@ -57,6 +57,7 @@ fun DirectChatScreen(
     var isSending by remember { mutableStateOf(false) }
     var isTyping by remember { mutableStateOf(false) }
     var userStatus by remember { mutableStateOf("offline") }
+    var myStatus by remember { mutableStateOf("offline") } // Para feedback de los botones de test
     
     val prefs = context.getSharedPreferences("supabase_session", android.content.Context.MODE_PRIVATE)
     // Usar el mismo origen de userId que SocialRepository para garantizar coincidencia
@@ -189,30 +190,35 @@ fun DirectChatScreen(
             GlassHeader(targetUser = targetUser, userStatus = userStatus, onBack = onBack)
             
             // DEBUG: Botón para probar estados (SOLO PARA PRUEBAS)
-            // El usuario pidió explícitamente esto para verificar cambios en el otro dispositivo.
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.Center
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Button(
-                    onClick = { 
-                        activityManager.enterChat() // Force Online
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
-                    modifier = Modifier.padding(end = 8.dp)
+                Text("Mi Estado actual: $myStatus", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Text("Test: Online", color = Color.White)
-                }
-                
-                Button(
-                    onClick = { 
-                        activityManager.exitChat() // Force Offline (with 500ms delay)
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
-                ) {
-                    Text("Test: Offline", color = Color.White)
+                    Button(
+                        onClick = { 
+                            myStatus = "chatting"
+                            activityManager.enterChat() 
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                        modifier = Modifier.padding(end = 8.dp)
+                    ) {
+                        Text("Test: Online", color = Color.White)
+                    }
+                    
+                    Button(
+                        onClick = { 
+                            myStatus = "offline"
+                            activityManager.exitChat() 
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                    ) {
+                        Text("Test: Offline", color = Color.White)
+                    }
                 }
             }
             
@@ -346,12 +352,14 @@ fun LiquidBackground() {
 @Composable
 fun GlassHeader(targetUser: ProfileDTO, userStatus: String, onBack: () -> Unit) {
     val statusColor = when (userStatus) {
-        "chatting" -> Color(0xFF00E676) // Verde brillante (Solo en chat)
-        else -> Color(0xFF9E9E9E) // Gris para todo lo demás (available, away, offline)
+        "chatting", "online", "available" -> Color(0xFF00E676) // Verde si es cualquier estado activo
+        "away" -> Color(0xFFFFC107) // Ámbar si está ausente
+        else -> Color(0xFF9E9E9E) // Gris para offline
     }
     
     val statusText = when (userStatus) {
-        "chatting" -> "En línea"
+        "chatting", "online", "available" -> "En línea"
+        "away" -> "Ausente"
         else -> "Desconectado"
     }
     

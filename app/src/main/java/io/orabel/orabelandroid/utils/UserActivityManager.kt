@@ -136,13 +136,13 @@ class UserActivityManager private constructor(
             
             // 2. Si llegamos aquí, confirmamos el estado Offline (NON-CANCELLABLE para asegurar consistencia)
             withContext(NonCancellable) {
-                Log.d(TAG, "🔒 Executing Offline update")
+                Log.d(TAG, "🔒 [ACTIVITY] Executing debounced Offline update")
                 _currentStatus.value = "offline"
-                try {
-                    repository.updateUserStatus("offline")
-                    Log.d(TAG, "✅ Status changed to offline (Debounced)")
-                } catch (e: Exception) {
-                    Log.e(TAG, "❌ Error setting offline: ${e.message}")
+                val result = repository.updateUserStatus("offline")
+                result.onSuccess {
+                    Log.d(TAG, "✅ [ACTIVITY] Successfully marked as OFFLINE (Debounced)")
+                }.onFailure { e ->
+                    Log.e(TAG, "❌ [ACTIVITY] Failed to mark as offline: ${e.message}")
                 }
             }
         }
@@ -161,18 +161,19 @@ class UserActivityManager private constructor(
      * Llamar cuando el usuario entra a un chat específico
      */
     fun enterChat() {
-        Log.d(TAG, "💬 Entering specific chat")
-        // 🛑 CANCELAR cualquier intento de poner offline (Inbox, Salida anterior, etc)
+        Log.d(TAG, "💬 [ACTIVITY] Requesting ENTER CHAT state")
+        // 🛑 CANCELAR cualquier intento de poner offline
         statusJob?.cancel()
         
         _currentStatus.value = "chatting"
         
         scope.launch {
-            try {
-                repository.updateUserStatus("chatting")
-                Log.d(TAG, "✅ Status changed to chatting")
-            } catch (e: Exception) {
-                Log.e(TAG, "❌ Error entering chat: ${e.message}")
+            Log.d(TAG, "🚀 [ACTIVITY] Launching enterChat background task")
+            val result = repository.updateUserStatus("chatting")
+            result.onSuccess {
+                Log.d(TAG, "✅ [ACTIVITY] Successfully marked as chatting in DB")
+            }.onFailure { e ->
+                Log.e(TAG, "❌ [ACTIVITY] Failed to mark as chatting: ${e.message}")
             }
         }
     }

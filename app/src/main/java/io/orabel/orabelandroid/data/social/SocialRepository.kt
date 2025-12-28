@@ -2737,8 +2737,13 @@ class SocialRepository private constructor(context: Context) {
      * Actualiza el estado del usuario (online/offline/chatting).
      */
     suspend fun updateUserStatus(status: String): Result<Unit> = withContext(Dispatchers.IO) {
-        val userId = getCurrentUserId() ?: return@withContext Result.failure(Exception("No user"))
-        Log.d(TAG, "📡 Updating user status to: $status (userId=$userId)")
+        val userId = getCurrentUserId() ?: run {
+            Log.e(TAG, "❌ Cannot update status: userId is NULL (Session might be lost)")
+            return@withContext Result.failure(Exception("No user"))
+        }
+        val token = getAccessToken()
+        Log.d(TAG, "📡 [STATUS_UPDATE] Initiating update to '$status' for userId=$userId (Token exists: ${token != null})")
+        
         try {
             val urlString = "$SUPABASE_URL/rest/v1/users?id=eq.$userId"
             val conn = createConnection(urlString)
@@ -2752,19 +2757,21 @@ class SocialRepository private constructor(context: Context) {
                 put("last_active_at", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss").format(Date()))
             }
             
-            Log.d(TAG, "📤 Sending status update: ${body.toString()}")
+            Log.d(TAG, "📤 [STATUS_UPDATE] Sending body: $body")
             OutputStreamWriter(conn.outputStream).use { it.write(body.toString()) }
             
-            if (conn.responseCode in 200..299) {
-                Log.d(TAG, "✅ Status updated successfully")
+            val responseCode = conn.responseCode
+            val response = conn.readResponse()
+            
+            if (responseCode in 200..299) {
+                Log.d(TAG, "✅ [STATUS_UPDATE] Success! ResponseCode=$responseCode")
                 Result.success(Unit)
             } else {
-                val error = "Error updating status: ${conn.responseCode}"
-                Log.e(TAG, "❌ $error")
-                Result.failure(Exception(error))
+                Log.e(TAG, "❌ [STATUS_UPDATE] Failed! Code=$responseCode, Response=$response")
+                Result.failure(Exception("Error $responseCode"))
             }
         } catch (e: Exception) {
-            Log.e(TAG, "❌ Exception updating status: ${e.message}", e)
+            Log.e(TAG, "❌ [STATUS_UPDATE] Exception: ${e.message}", e)
             Result.failure(e)
         }
     }
