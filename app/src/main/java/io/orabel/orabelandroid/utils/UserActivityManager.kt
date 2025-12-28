@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import io.orabel.orabelandroid.data.social.SocialRepository
 import kotlinx.coroutines.*
+import kotlinx.coroutines.job
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,11 +24,12 @@ import java.util.Date
 class UserActivityManager private constructor(
     private val context: Context
 ) {
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val repository by lazy { SocialRepository.getInstance(context) }
-    
     private var heartbeatJob: Job? = null
     private var isInitialized = false
+    
+    // Motor de tareas persistente (SupervisorJob evita que un fallo cancele todo)
+    private var scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     
     private val _isAppActive = MutableStateFlow(false)
     val isAppActive: StateFlow<Boolean> = _isAppActive
@@ -53,12 +55,15 @@ class UserActivityManager private constructor(
      * Inicializar el manager cuando la app arranca
      */
     fun initialize() {
-        if (isInitialized) {
-            Log.d(TAG, "⚠️ Already initialized")
+        Log.d(TAG, "🚀 [INITIALIZE] Starting UserActivityManager")
+        if (isInitialized && !scope.coroutineContext.job.isActive) {
+            Log.d(TAG, "🔄 [INITIALIZE] Scope was inactive, recreating")
+            scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        } else if (isInitialized) {
+            Log.d(TAG, "⚠️ [INITIALIZE] Already initialized and active")
             return
         }
         
-        Log.d(TAG, "🚀 Initializing UserActivityManager")
         isInitialized = true
         onAppStart()
     }
@@ -123,14 +128,22 @@ class UserActivityManager private constructor(
      * Evita que transiciones rápidas marquen al usuario como desconectado incorrectamente.
      */
     private fun scheduleOfflineExclusivity() {
+        Log.d(TAG, "⏳ [ACTIVITY] Scheduling OFF-LINE state (debounce)")
         statusJob?.cancel()
+
+        // Asegurar que el scope esté vivo
+        if (!scope.coroutineContext.job.isActive) {
+            Log.w(TAG, "⚠️ [ACTIVITY] Scope was dead, reviving for offline update")
+            scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        }
+
         statusJob = scope.launch {
-            Log.d(TAG, "⏳ Status debounce started (500ms)")
+            Log.d(TAG, "⏳ [ACTIVITY] Status debounce started (500ms)")
             // 1. Esperar (CANCELABLE) para dar oportunidad a enterChat de interrumpir
             try {
                 delay(500)
             } catch (e: CancellationException) {
-                Log.d(TAG, "❌ Status debounce CANCELLED")
+                Log.d(TAG, "❌ [ACTIVITY] Status debounce CANCELLED")
                 throw e
             }
             
@@ -167,8 +180,16 @@ class UserActivityManager private constructor(
         
         _currentStatus.value = "chatting"
         
+        // Asegurar que el scope esté vivo
+        if (!scope.coroutineContext.job.isActive) {
+            Log.w(TAG, "⚠️ [ACTIVITY] Scope was dead, reviving for enterChat")
+            scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        }
+
+        _currentStatus.value = "chatting"
+        
         scope.launch {
-            Log.d(TAG, "🚀 [ACTIVITY] Launching enterChat background task")
+            Log.d(TAG, "🚀 [ACTIVITY] Executing enterChat background task")
             val result = repository.updateUserStatus("chatting")
             result.onSuccess {
                 Log.d(TAG, "✅ [ACTIVITY] Successfully marked as chatting in DB")

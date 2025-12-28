@@ -133,6 +133,8 @@ class SocialRepository private constructor(context: Context) {
             conn.setRequestProperty("Authorization", "Bearer $token")
         }
         conn.setRequestProperty("Content-Type", "application/json")
+        conn.connectTimeout = 10000 // 10 segundos
+        conn.readTimeout = 10000
         return conn
     }
     
