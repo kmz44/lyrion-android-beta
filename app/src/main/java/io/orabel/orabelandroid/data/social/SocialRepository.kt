@@ -32,6 +32,7 @@ import java.net.URLEncoder
 import java.util.Date
 import java.util.UUID
 import java.util.TimeZone
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,6 +47,18 @@ import io.objectbox.query.QueryBuilder.StringOrder
  */
 class SocialRepository private constructor(context: Context) {
     private val appContext = context.applicationContext
+
+    private val senderDisplayNameCache = mutableMapOf<String, String>()
+
+    private data class PendingStatusUpdate(
+        val status: String,
+        val deliveredAt: Long?,
+        val seenAt: Long?
+    )
+
+    // Si un evento de status llega ANTES de que el mensaje exista local/UI, lo guardamos aquí.
+    // Caso típico: el receptor marca "delivered" muy rápido.
+    private val pendingStatusUpdates = ConcurrentHashMap<Long, PendingStatusUpdate>()
     
     // ObjectBox for local message storage (ephemeral pattern)
     private val localMessagesBox: Box<LocalMessageEntity> = 
@@ -1002,11 +1015,8 @@ class SocialRepository private constructor(context: Context) {
             localMessagesBox.put(localEntity)
             Log.d(TAG, "💾 [EPHEMERAL] Saved message $messageId to local storage FIRST")
             
-            // Disparar notificación si el mensaje es para el usuario actual y no está en la app
-            val currentUserId = getCurrentUserId()
-            if (currentUserId != null && msg.receiverId.toString() == currentUserId) {
-                triggerMessageNotification(localEntity)
-            }
+            // NOTA: Las notificaciones en background fueron eliminadas.
+            // Esta función solo marca mensajes como READ cuando el usuario los abre.
             
             // 2. Marcar como leído en Supabase
             val patchUrl = "$SUPABASE_URL/rest/v1/direct_messages?id=eq.$messageId"
@@ -1046,63 +1056,96 @@ class SocialRepository private constructor(context: Context) {
         }
     }
     
+    private fun ensureMessagesNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                "messages_channel",
+                "Mensajes",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notificaciones de mensajes directos"
+                enableVibration(true)
+                setShowBadge(true)
+            }
+
+            val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    private fun safeNotificationId(messageId: Long): Int {
+        val bucket = (messageId % 100_000L).toInt()
+        return 10_000 + bucket
+    }
+
+    private fun computeDisplayName(profile: ProfileDTO?): String {
+        if (profile == null) return "Usuario"
+
+        val username = profile.username?.trim()
+        if (!username.isNullOrBlank()) return username
+
+        val fullName = listOfNotNull(profile.nombre?.trim(), profile.apellido?.trim())
+            .filter { it.isNotBlank() }
+            .joinToString(" ")
+        return if (fullName.isNotBlank()) fullName else "Usuario"
+    }
+
     /**
-     * Dispara una notificación para un mensaje nuevo.
-     * Se llama cuando se recibe un mensaje y la app está en background o inactiva.
+     * Muestra una notificación de mensaje entrante.
+     * IMPORTANTE: Esta función no inicia listeners en segundo plano.
+     * Debe llamarse SOLO cuando la app esté en foreground (app abierta).
      */
-    private fun triggerMessageNotification(message: LocalMessageEntity) {
+    suspend fun showIncomingMessageNotification(message: MessageDTO) = withContext(Dispatchers.IO) {
         try {
-            // Verificar si la app está en foreground (si lo está, no mostrar notificación)
-            val activityManager = appContext.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-            val runningTasks = activityManager.getRunningTasks(1)
-            val isAppInForeground = runningTasks.isNotEmpty() && 
-                runningTasks[0].topActivity?.packageName == appContext.packageName
-            
-            if (isAppInForeground) {
-                Log.d(TAG, "App is in foreground, skipping notification")
-                return
+            Log.d(TAG, "🔔 showIncomingMessageNotification: start messageId=${message.id}")
+
+            val nm = NotificationManagerCompat.from(appContext)
+            if (!nm.areNotificationsEnabled()) {
+                Log.w(TAG, "🔕 Notifications disabled at app level (areNotificationsEnabled=false)")
+                return@withContext
             }
-            
+
             // Crear canal de notificaciones si no existe
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val channel = NotificationChannel(
-                    "messages_channel",
-                    "Mensajes",
-                    NotificationManager.IMPORTANCE_HIGH
-                ).apply {
-                    description = "Notificaciones de mensajes directos"
-                    enableVibration(true)
-                    setShowBadge(true)
+            ensureMessagesNotificationChannel()
+
+            // Resolver nombre del remitente (con cache simple en memoria)
+            val senderIdStr = message.senderId.toString()
+            val cachedName = synchronized(senderDisplayNameCache) { senderDisplayNameCache[senderIdStr] }
+            val senderName = if (!cachedName.isNullOrBlank()) {
+                cachedName
+            } else {
+                val profile = try {
+                    fetchUserProfileById(message.senderId)
+                } catch (_: Exception) {
+                    null
                 }
-                
-                val notificationManager = appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                notificationManager.createNotificationChannel(channel)
+                val computed = computeDisplayName(profile)
+                synchronized(senderDisplayNameCache) { senderDisplayNameCache[senderIdStr] = computed }
+                computed
             }
-            
+
+            val content = message.content.ifBlank { "Nuevo mensaje" }
+
             // Intent para abrir el chat cuando se toca la notificación
             val intent = Intent(appContext, io.orabel.orabelandroid.ui.screens.search.SearchActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("open_chat_with_user_id", message.senderId)
+                putExtra("open_chat_with_user_id", senderIdStr)
             }
-            
+
             val pendingIntent = PendingIntent.getActivity(
                 appContext,
-                message.messageId.toInt(),
+                safeNotificationId(message.id),
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            
-            // Obtener nombre del remitente
-            val senderName = message.senderUsername ?: "Usuario"
-            
-            // Crear notificación
+
             val notification = NotificationCompat.Builder(appContext, "messages_channel")
                 .setSmallIcon(io.orabel.orabelandroid.R.drawable.ic_message)
                 .setContentTitle(senderName)
-                .setContentText(message.content)
+                .setContentText(content)
                 .setStyle(
                     NotificationCompat.BigTextStyle()
-                        .bigText(message.content)
+                        .bigText(content)
                         .setBigContentTitle(senderName)
                 )
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
@@ -1110,13 +1153,10 @@ class SocialRepository private constructor(context: Context) {
                 .setContentIntent(pendingIntent)
                 .setCategory(NotificationCompat.CATEGORY_MESSAGE)
                 .build()
-            
-            // Mostrar notificación
-            val notificationId = 1000 + message.messageId.toInt()
-            
+
             try {
-                NotificationManagerCompat.from(appContext).notify(notificationId, notification)
-                Log.d(TAG, "🔔 Notification shown for message from $senderName")
+                NotificationManagerCompat.from(appContext).notify(safeNotificationId(message.id), notification)
+                Log.d(TAG, "🔔 Notification shown (foreground) from $senderName")
             } catch (e: SecurityException) {
                 Log.e(TAG, "Permission denied to show notification", e)
             }
@@ -1217,8 +1257,31 @@ class SocialRepository private constructor(context: Context) {
                     val localEntity = LocalMessageEntity.fromDTO(sentMessage, readAt = System.currentTimeMillis())
                     localMessagesBox.put(localEntity)
                     Log.d(TAG, "💾 [SEND] Saved sent message to local storage")
+
+                    // Si el status (delivered/read) llegó antes de que guardáramos este mensaje,
+                    // lo aplicamos ahora para no quedarnos atascados en "sent".
+                    val pending = pendingStatusUpdates.remove(messageId)
+                    val finalMessage = if (pending != null) {
+                        try {
+                            localEntity.status = pending.status
+                            if (pending.deliveredAt != null) localEntity.deliveredAt = pending.deliveredAt
+                            if (pending.seenAt != null) localEntity.seenAt = pending.seenAt
+                            localMessagesBox.put(localEntity)
+                            Log.d(TAG, "💾 [SEND] Applied pending status to message $messageId: ${pending.status}")
+                        } catch (e: Exception) {
+                            Log.e(TAG, "❌ [SEND] Failed applying pending status for message $messageId: ${e.message}")
+                        }
+
+                        sentMessage.copy(
+                            status = pending.status,
+                            deliveredAt = pending.deliveredAt ?: sentMessage.deliveredAt,
+                            seenAt = pending.seenAt ?: sentMessage.seenAt
+                        )
+                    } else {
+                        sentMessage
+                    }
                     
-                    Result.success(sentMessage)
+                    Result.success(finalMessage)
                 } else {
                     Result.failure(Exception("Empty response"))
                 }
@@ -2756,6 +2819,70 @@ class SocialRepository private constructor(context: Context) {
     }
     
     /**
+     * Suscribe a TODOS los mensajes nuevos donde el usuario actual es receiver.
+     * Se usa en la lista de conversaciones para detectar mensajes entrantes.
+     */
+    fun subscribeToAllMessages(): Flow<MessageDTO> = callbackFlow {
+        val currentUserId = getCurrentUserId() ?: run {
+            Log.e(TAG, "❌ subscribeToAllMessages: No current user ID")
+            close()
+            return@callbackFlow
+        }
+        
+        Log.d(TAG, "🔔 [INBOX] Setting up Realtime subscription for ALL incoming messages")
+        
+        val channel = io.orabel.orabelandroid.auth.SupabaseClient.client.realtime.channel("inbox:$currentUserId:${System.currentTimeMillis()}")
+        
+        val postgresFlow = channel.postgresChangeFlow<PostgresAction.Insert>(schema = "public") {
+            table = "direct_messages"
+        }
+        
+        val realtimeJob = launch {
+            try {
+                postgresFlow.collect { action ->
+                    val jsonRecord = action.record as? JsonObject ?: return@collect
+                    
+                    val receiverId = jsonRecord["receiver_id"]?.jsonPrimitive?.content ?: ""
+                    
+                    // Solo emitir si el mensaje es para nosotros
+                    if (receiverId == currentUserId) {
+                        Log.d(TAG, "📨 [INBOX] New message received, emitting to UI")
+                        val message = parseMessageFromRealtimeRecord(jsonRecord)
+                        trySend(message).isSuccess
+                    }
+                }
+            } catch (e: Exception) {
+                if (e !is CancellationException) {
+                    Log.e(TAG, "❌ [INBOX] Flow error: ${e.message}", e)
+                }
+                close(e)
+            }
+        }
+        
+        launch {
+            try {
+                channel.subscribe()
+                Log.d(TAG, "✅ [INBOX] Channel subscribed for all incoming messages")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ [INBOX] Subscription error: ${e.message}")
+            }
+        }
+        
+        awaitClose {
+            Log.d(TAG, "🔌 [INBOX] Closing inbox subscription")
+            realtimeJob.cancel()
+            launch { 
+                try {
+                    channel.unsubscribe()
+                    Log.d(TAG, "✅ [INBOX] Unsubscribed from inbox")
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ [INBOX] Unsubscribe error: ${e.message}")
+                }
+            }
+        }
+    }
+    
+    /**
      * Suscribe a cambios de status en mensajes (para palomas: sent → delivered → read).
      * Emite pares (messageId, newStatus) cuando un mensaje cambia de estado.
      */
@@ -3082,12 +3209,16 @@ class SocialRepository private constructor(context: Context) {
      * Suscribe al estado de chat del partner (chatting/offline).
      * Independiente del campo 'status'.
      * Retorna 'chatting' solo si el partner está chateando CON NOSOTROS.
+     * Incluye polling de respaldo cada 5 segundos para garantizar actualizaciones.
      */
     fun subscribeToChatStatus(partnerId: String, currentUserId: String): Flow<String> = callbackFlow {
         Log.d(TAG, "👤 Subscribing to chat_status for partner: $partnerId (currentUser=$currentUserId)")
-        val channel = io.orabel.orabelandroid.auth.SupabaseClient.client.realtime.channel("chat_status:$partnerId")
+        val channel = io.orabel.orabelandroid.auth.SupabaseClient.client.realtime.channel("chat_status:$partnerId:${System.currentTimeMillis()}")
         
-        val job = launch {
+        var lastStatus = "offline"
+        
+        // Job 1: Realtime subscription (prioritario)
+        val realtimeJob = launch {
             channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
                 table = "users"
             }.collect { action ->
@@ -3107,17 +3238,42 @@ class SocialRepository private constructor(context: Context) {
                     "offline"
                 }
                 
-                Log.d(TAG, "✅ [REALTIME] chat_status update for $partnerId: $finalStatus (raw=$chatStatus, partner=$chatPartnerId)")
-                trySend(finalStatus)
+                if (finalStatus != lastStatus) {
+                    lastStatus = finalStatus
+                    Log.d(TAG, "✅ [REALTIME] chat_status update for $partnerId: $finalStatus (raw=$chatStatus, partner=$chatPartnerId)")
+                    trySend(finalStatus)
+                }
+            }
+        }
+        
+        // Job 2: Polling de respaldo cada 5 segundos
+        val pollingJob = launch {
+            kotlinx.coroutines.delay(3000) // Esperar 3s antes de empezar a hacer polling
+            while (true) {
+                try {
+                    val currentStatus = getChatStatus(partnerId, currentUserId)
+                    if (currentStatus != lastStatus) {
+                        lastStatus = currentStatus
+                        Log.d(TAG, "🔄 [POLLING] chat_status update for $partnerId: $currentStatus")
+                        trySend(currentStatus)
+                    }
+                } catch (e: CancellationException) {
+                    Log.d(TAG, "⏹️ [POLLING] Polling job cancelled for $partnerId")
+                    throw e
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ [POLLING] Error checking chat_status: ${e.message}")
+                }
+                kotlinx.coroutines.delay(5000) // Polling cada 5 segundos
             }
         }
         
         channel.subscribe()
-        Log.d(TAG, "✅ Subscribed to chat_status for: $partnerId")
+        Log.d(TAG, "✅ Subscribed to chat_status for: $partnerId (with polling backup)")
         
         awaitClose {
             Log.d(TAG, "🔴 Unsubscribing from chat_status: $partnerId")
-            job.cancel()
+            realtimeJob.cancel()
+            pollingJob.cancel()
             launch { channel.unsubscribe() }
         }
     }
@@ -3377,8 +3533,17 @@ class SocialRepository private constructor(context: Context) {
                 if (seenAt != null) localMessage.seenAt = seenAt
                 localMessagesBox.put(localMessage)
                 Log.d(TAG, "💾 Updated message $messageId in local storage: status=$newStatus")
+
+                // Si había un pending (por carrera), ya está resuelto.
+                pendingStatusUpdates.remove(messageId)
             } else {
-                Log.w(TAG, "⚠️ Message $messageId not found in local storage")
+                // Aún no existe localmente (race): guardar para aplicarlo cuando se inserte.
+                pendingStatusUpdates[messageId] = PendingStatusUpdate(
+                    status = newStatus,
+                    deliveredAt = deliveredAt,
+                    seenAt = seenAt
+                )
+                Log.w(TAG, "⚠️ Message $messageId not found in local storage; cached pending status=$newStatus")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error updating message status in local: ${e.message}")

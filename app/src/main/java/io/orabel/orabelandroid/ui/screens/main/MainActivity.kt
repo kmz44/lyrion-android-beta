@@ -211,7 +211,7 @@ class ModernMainActivity : ComponentActivity() {
         isVoiceAssistantActive.value = true
         Log.d("MainActivity", "✅ Servicio de asistente de voz iniciado")
     }
-
+    
     private fun openChat() {
         orabelPreferences.setLastNavigationIndex(1) // Chat ahora es índice 1
         val intent = Intent(this, ChatActivity::class.java)

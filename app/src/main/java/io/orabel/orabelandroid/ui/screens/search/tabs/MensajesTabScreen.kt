@@ -1,5 +1,7 @@
 package io.orabel.orabelandroid.ui.screens.search.tabs
 
+import android.Manifest
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -22,17 +24,23 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import io.orabel.orabelandroid.R
 import io.orabel.orabelandroid.data.social.ProfileDTO
 import io.orabel.orabelandroid.data.social.SocialRepository
 import io.orabel.orabelandroid.ui.screens.search.components.AvatarView
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.isGranted
 
 /**
  * Pantalla "Mensajes" - Bandeja de entrada de mensajes directos.
  * Ahora carga conversaciones desde el cache local (ObjectBox).
+ * Con Realtime + Polling para detectar mensajes nuevos al instante.
  */
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MensajesTabScreen(
     threads: List<ProfileDTO>, // Ya no se usa, pero lo mantenemos para compatibilidad
@@ -48,18 +56,79 @@ fun MensajesTabScreen(
     var isLoadingConversations by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     
-    // Cargar conversaciones desde ObjectBox al iniciar
+    // Permiso de notificaciones (Android 13+)
+    val notificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        rememberPermissionState(Manifest.permission.POST_NOTIFICATIONS)
+    } else {
+        null
+    }
+    
+    // Pedir permiso al iniciar
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (notificationPermission?.status?.isGranted == false) {
+                notificationPermission.launchPermissionRequest()
+            }
+        }
+    }
+    
+    // Función helper para recargar conversaciones
+    suspend fun reloadConversations() {
+        try {
+            val newConversations = repository.fetchConversations()
+            android.util.Log.d("MensajesTab", "📬 Reloaded ${newConversations.size} conversations")
+            conversations = newConversations
+        } catch (e: Exception) {
+            android.util.Log.e("MensajesTab", "❌ Error reloading: ${e.message}")
+        }
+    }
+    
+    // 1. Cargar conversaciones al iniciar
     LaunchedEffect(Unit) {
         scope.launch {
             try {
                 isLoadingConversations = true
                 conversations = repository.fetchConversations()
-                android.util.Log.d("MensajesTab", "Loaded ${conversations.size} conversations from local cache")
+                android.util.Log.d("MensajesTab", "✅ Loaded ${conversations.size} conversations from local cache")
                 isLoadingConversations = false
             } catch (e: Exception) {
                 errorMessage = e.message
-                android.util.Log.e("MensajesTab", "Error loading conversations: ${e.message}", e)
+                android.util.Log.e("MensajesTab", "❌ Error loading conversations: ${e.message}", e)
                 isLoadingConversations = false
+            }
+        }
+    }
+    
+    // 2. Escuchar mensajes nuevos para recargar la lista (el servicio ya maneja notificaciones)
+    LaunchedEffect(Unit) {
+        scope.launch {
+            try {
+                val currentUserId = repository.getCurrentUserId() ?: return@launch
+                android.util.Log.d("MensajesTab", "🔔 Listening for new messages to refresh list")
+                
+                repository.subscribeToAllMessages().collect { newMessage ->
+                    android.util.Log.d("MensajesTab", "📨 [REALTIME] New message received, reloading conversations")
+                    // Solo recargar la lista, el servicio de fondo ya maneja notificaciones y delivered
+                    reloadConversations()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MensajesTab", "❌ Realtime subscription error: ${e.message}")
+            }
+        }
+    }
+    
+    // 3. Polling de respaldo cada 10 segundos
+    LaunchedEffect(Unit) {
+        scope.launch {
+            kotlinx.coroutines.delay(5000) // Esperar 5s antes de empezar polling
+            while (true) {
+                try {
+                    android.util.Log.d("MensajesTab", "🔄 [POLLING] Checking for new messages...")
+                    reloadConversations()
+                } catch (e: Exception) {
+                    android.util.Log.e("MensajesTab", "❌ [POLLING] Error: ${e.message}")
+                }
+                kotlinx.coroutines.delay(10000) // Polling cada 10 segundos
             }
         }
     }
@@ -267,3 +336,5 @@ private fun formatTime(date: Date): String {
         else -> SimpleDateFormat("dd/MM/yy", Locale.getDefault()).format(date)
     }
 }
+
+

@@ -265,24 +265,25 @@ class UserActivityManager private constructor(
     /**
      * Llamar cuando el usuario sale de un chat directo.
      * Actualiza SOLO el campo chat_status (no afecta 'status').
+     * Usa runBlocking para garantizar que la actualización se complete inmediatamente.
      */
     fun exitDirectChat() {
-        Log.d(TAG, "💬 [CHAT_STATUS] Exiting direct chat - setting chat_status='offline'")
+        Log.d(TAG, "💬 [CHAT_STATUS] Exiting direct chat - setting chat_status='offline' IMMEDIATELY")
         statusJob?.cancel()
         
-        if (!scope.coroutineContext.job.isActive) {
-            Log.w(TAG, "⚠️ [CHAT_STATUS] Scope was dead, reviving for exitDirectChat")
-            scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-        }
-        
-        scope.launch {
-            Log.d(TAG, "🚀 [CHAT_STATUS] Executing exitDirectChat background task")
-            val result = repository.updateChatStatus("offline", null)
-            result.onSuccess {
-                Log.d(TAG, "✅ [CHAT_STATUS] Successfully set chat_status='offline'")
-            }.onFailure { e ->
-                Log.e(TAG, "❌ [CHAT_STATUS] Failed to set chat_status='offline': ${e.message}")
+        // Usar runBlocking para asegurar que la actualización se complete ANTES de salir de la función
+        try {
+            runBlocking {
+                Log.d(TAG, "🚀 [CHAT_STATUS] Executing exitDirectChat SYNCHRONOUSLY")
+                val result = repository.updateChatStatus("offline", null)
+                result.onSuccess {
+                    Log.d(TAG, "✅ [CHAT_STATUS] Successfully set chat_status='offline'")
+                }.onFailure { e ->
+                    Log.e(TAG, "❌ [CHAT_STATUS] Failed to set chat_status='offline': ${e.message}")
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ [CHAT_STATUS] Exception in exitDirectChat: ${e.message}")
         }
     }
     

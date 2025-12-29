@@ -1,5 +1,6 @@
 package io.orabel.orabelandroid.ui.screens.search
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -24,15 +25,38 @@ import io.orabel.orabelandroid.ui.screens.profile.ProfileActivity
 import io.orabel.orabelandroid.health.HealthReportShareActivity
 import io.orabel.orabelandroid.ui.screens.study.StudyKnowledgeActivity
 import io.orabel.orabelandroid.ui.screens.personal.PersonalContextActivity
+import android.util.Log
+import io.github.jan.supabase.auth.auth
 import org.koin.android.ext.android.inject
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.activity.result.contract.ActivityResultContracts
 
 class SearchActivity : ComponentActivity() {
     
     private val orabelPreferences by inject<OrabelPreferences>()
+    
+    // Launcher para solicitar permisos
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        Log.d("SearchActivity", "📱 Permiso de notificaciones: ${if (isGranted) "CONCEDIDO" else "DENEGADO"}")
+        if (!isGranted) {
+            Log.w("SearchActivity", "⚠️ Usuario denegó permiso de notificaciones")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.d("SearchActivity", "🚀 onCreate()")
         enableEdgeToEdge()
+        
+        // Verificar y solicitar permisos antes de iniciar el servicio
+        checkAndRequestPermissions()
+        Log.d("SearchActivity", "✅ Permission check completed")
 
         setContent {
             val isDarkTheme by orabelPreferences.isDarkThemeFlow.collectAsState()
@@ -58,6 +82,39 @@ class SearchActivity : ComponentActivity() {
         val intent = Intent(this, ModernMainActivity::class.java)
         startActivity(intent)
         finish()
+    }
+    
+    /**
+     * Verifica y solicita permisos necesarios para el servicio de mensajes
+     */
+    private fun checkAndRequestPermissions() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ requiere permiso explícito de notificaciones
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    Log.d("SearchActivity", "✅ Permiso de notificaciones ya concedido")
+                }
+                ActivityCompat.shouldShowRequestPermissionRationale(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) -> {
+                    // Mostrar explicación al usuario
+                    Log.d("SearchActivity", "📢 Mostrando razón para solicitar permiso")
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+                else -> {
+                    // Solicitar permiso directamente
+                    Log.d("SearchActivity", "📱 Solicitando permiso de notificaciones")
+                    requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            // Android 12 y anteriores no requieren permiso explícito
+            Log.d("SearchActivity", "✅ Android <13, permiso no requerido")
+        }
     }
     
     private fun openCalendarActivity() {

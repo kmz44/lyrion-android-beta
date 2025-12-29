@@ -23,12 +23,18 @@ import org.koin.core.context.stopKoin
 import org.koin.ksp.generated.module
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 
 class OrabelApplication : Application(), DefaultLifecycleObserver {
     
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    private val foregroundListenerScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var inboxListenerJob: Job? = null
     
     companion object {
         private const val TAG = "OrabelApplication"
@@ -115,11 +121,44 @@ class OrabelApplication : Application(), DefaultLifecycleObserver {
         Log.d(TAG, "🟢 App moved to FOREGROUND")
         applicationScope.launch {
             try {
-                val socialRepository: SocialRepository by inject()
+                val socialRepository = SocialRepository.getInstance(this@OrabelApplication)
                 socialRepository.updateUserStatus("online")
                 Log.d(TAG, "✅ User status updated to: online")
             } catch (e: Exception) {
                 Log.e(TAG, "❌ Error updating status to online: ${e.message}")
+            }
+        }
+
+        // Realtime inbox listener ONLY while app is in foreground.
+        // Importante: al arrancar la app puede NO existir sesión todavía; esperamos y reintentamos.
+        if (inboxListenerJob?.isActive == true) return
+        inboxListenerJob = foregroundListenerScope.launch {
+            val socialRepository = SocialRepository.getInstance(this@OrabelApplication)
+
+            while (true) {
+                try {
+                    val currentUserId = socialRepository.getCurrentUserId()
+                    if (currentUserId.isNullOrBlank()) {
+                        Log.d(TAG, "🔕 Foreground inbox listener: sin sesión aún (userId=null), reintentando...")
+                        delay(1000)
+                        continue
+                    }
+
+                    Log.d(TAG, "🔔 Foreground inbox listener START (userId=$currentUserId)")
+
+                    socialRepository.subscribeToAllMessages().collect { message ->
+                        Log.d(TAG, "📨 Foreground inbox listener: mensaje nuevo id=${message.id}")
+                        // Mostrar notificación incluso en foreground (según requerimiento).
+                        socialRepository.showIncomingMessageNotification(message)
+                    }
+
+                    // Si el flow termina sin excepción, reintentar (p.ej., reconexión realtime)
+                    Log.w(TAG, "⚠️ Foreground inbox listener flow terminó; reintentando...")
+                    delay(1500)
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ Error in foreground inbox listener: ${e.message}", e)
+                    delay(2000)
+                }
             }
         }
     }
@@ -128,9 +167,16 @@ class OrabelApplication : Application(), DefaultLifecycleObserver {
     override fun onStop(owner: LifecycleOwner) {
         super<DefaultLifecycleObserver>.onStop(owner)
         Log.d(TAG, "🔴 App moved to BACKGROUND")
+
+        // Detener listener para evitar cualquier segundo plano.
+        try {
+            inboxListenerJob?.cancel()
+        } catch (_: Exception) {
+        }
+        inboxListenerJob = null
         applicationScope.launch {
             try {
-                val socialRepository: SocialRepository by inject()
+                val socialRepository = SocialRepository.getInstance(this@OrabelApplication)
                 socialRepository.updateUserStatus("offline")
                 Log.d(TAG, "✅ User status updated to: offline")
             } catch (e: Exception) {

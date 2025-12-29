@@ -290,6 +290,9 @@ dependencies {
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.4.0")
     
+    // Accompanist for permissions
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+    
     // ML Kit for offline text recognition (OCR)
     implementation("com.google.mlkit:text-recognition:16.0.0")
     

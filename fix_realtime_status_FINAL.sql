@@ -21,7 +21,7 @@ DROP FUNCTION IF EXISTS notify_status_change();
 DROP FUNCTION IF EXISTS notify_message_status_change();
 
 -- ===================================================================
--- PASO 2: TRIGGER QUE SE EJECUTA EN CADA CAMBIO DE is_active/status
+-- PASO 2: TRIGGER QUE SE EJECUTA EN CADA CAMBIO DE is_active/status/chat_status
 -- ===================================================================
 
 -- Este trigger simplemente notifica via Realtime cuando cambia el estado
@@ -39,6 +39,12 @@ BEGIN
   -- Actualizar last_seen cuando se desactiva
   IF NEW.is_active = false AND (OLD.is_active IS DISTINCT FROM NEW.is_active) THEN
     NEW.last_seen = NOW();
+  END IF;
+  
+  -- Log cuando chat_status cambia para debugging
+  IF OLD.chat_status IS DISTINCT FROM NEW.chat_status THEN
+    RAISE NOTICE 'chat_status changed for user %: % -> % (partner: %)', 
+      NEW.id, OLD.chat_status, NEW.chat_status, NEW.current_chat_partner_id;
   END IF;
   
   RETURN NEW;

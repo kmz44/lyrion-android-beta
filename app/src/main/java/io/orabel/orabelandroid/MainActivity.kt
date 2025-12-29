@@ -5,11 +5,16 @@
 
 package io.orabel.orabelandroid
 
+import android.Manifest
 import android.content.Intent
+import android.content.SharedPreferences
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import io.github.jan.supabase.auth.auth
 import io.orabel.orabelandroid.auth.LoginActivity
@@ -35,9 +40,21 @@ class MainActivity : ComponentActivity() {
     private val offlineSessionManager by lazy { OfflineSessionManager(this) }
     private val userActivityManager by lazy { UserActivityManager.getInstance(this) }
 
+    private val notificationPrefs: SharedPreferences by lazy {
+        getSharedPreferences("notifications", MODE_PRIVATE)
+    }
+
+    private val requestNotificationsPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        Log.d("MainActivity", "POST_NOTIFICATIONS granted=$granted")
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        maybeRequestPostNotificationsOnce()
         
         // Optimizar rendering para mejor rendimiento
         RenderingOptimizer.optimizeRendering(this)
@@ -93,6 +110,19 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun maybeRequestPostNotificationsOnce() {
+        if (Build.VERSION.SDK_INT < 33) return
+        val alreadyAsked = notificationPrefs.getBoolean("asked_post_notifications", false)
+        if (alreadyAsked) return
+
+        notificationPrefs.edit().putBoolean("asked_post_notifications", true).apply()
+
+        if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) {
+            return
+        }
+        requestNotificationsPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
     
     /**
