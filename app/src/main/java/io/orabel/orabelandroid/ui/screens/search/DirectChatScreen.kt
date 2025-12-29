@@ -142,7 +142,54 @@ fun DirectChatScreen(
         }
     }
     
-    // 5. Reset chat_status on leave
+    // 5. Subscribe to MESSAGE STATUS changes (Realtime para palomas)
+    LaunchedEffect(targetUser.id) {
+        launch {
+            try {
+                repository.subscribeToMessageStatusChanges(targetUser.id.toString()).collect { (messageId, newStatus) ->
+                    android.util.Log.d("DirectChat", "🕊️ [PALOMAS] Message $messageId status -> $newStatus")
+                    
+                    val deliveredAt = if (newStatus == "delivered" || newStatus == "read") System.currentTimeMillis() else null
+                    val seenAt = if (newStatus == "read") System.currentTimeMillis() else null
+                    
+                    // Actualizar el mensaje en la lista (UI)
+                    messages = messages.map { msg ->
+                        if (msg.id == messageId) {
+                            msg.copy(
+                                status = newStatus,
+                                deliveredAt = deliveredAt ?: msg.deliveredAt,
+                                seenAt = seenAt ?: msg.seenAt
+                            )
+                        } else {
+                            msg
+                        }
+                    }
+                    
+                    // Guardar el cambio en local storage para persistencia
+                    launch {
+                        repository.updateLocalMessageStatus(messageId, newStatus, deliveredAt, seenAt)
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("DirectChat", "❌ [PALOMAS] Realtime error: ${e.message}")
+            }
+        }
+    }
+    
+    // 6. Mark visible messages as read when they appear on screen
+    LaunchedEffect(messages.size) {
+        launch {
+            // Marcar mensajes recibidos como leídos
+            messages.filter { msg ->
+                msg.senderId.toString() != currentUserId && 
+                (msg.status == "delivered" || msg.status == "sent")
+            }.forEach { msg ->
+                repository.markMessageAsRead(msg.id)
+            }
+        }
+    }
+    
+    // 7. Reset chat_status on leave
     DisposableEffect(Unit) {
         onDispose {
             activityManager.exitDirectChat()

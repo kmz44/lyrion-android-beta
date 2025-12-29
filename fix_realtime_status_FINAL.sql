@@ -13,8 +13,12 @@
 DROP TRIGGER IF EXISTS trigger_heartbeat_check ON users;
 DROP TRIGGER IF EXISTS trigger_notify_status_change ON users;
 DROP TRIGGER IF EXISTS trigger_update_user_activity ON users;
+DROP TRIGGER IF EXISTS trigger_status_realtime ON users;
+DROP TRIGGER IF EXISTS trigger_message_status_change ON direct_messages;
 DROP FUNCTION IF EXISTS trigger_check_inactive_on_heartbeat();
 DROP FUNCTION IF EXISTS notify_user_status_change();
+DROP FUNCTION IF EXISTS notify_status_change();
+DROP FUNCTION IF EXISTS notify_message_status_change();
 
 -- ===================================================================
 -- PASO 2: TRIGGER QUE SE EJECUTA EN CADA CAMBIO DE is_active/status
@@ -42,7 +46,7 @@ END;
 $$;
 
 CREATE TRIGGER trigger_status_realtime
-  BEFORE UPDATE OF is_active, status, chat_status ON users
+  BEFORE UPDATE OF is_active, status, chat_status, current_chat_partner_id ON users
   FOR EACH ROW
   EXECUTE FUNCTION notify_status_change();
 
@@ -136,6 +140,7 @@ GRANT EXECUTE ON FUNCTION update_heartbeat() TO authenticated;
 -- Verificar que las tablas están en Realtime
 DO $$
 BEGIN
+  -- Tabla users
   IF NOT EXISTS (
     SELECT 1 FROM pg_publication_tables 
     WHERE pubname = 'supabase_realtime' AND tablename = 'users'
@@ -144,6 +149,28 @@ BEGIN
     RAISE NOTICE 'Added users table to Realtime';
   ELSE
     RAISE NOTICE 'users table already in Realtime';
+  END IF;
+  
+  -- Tabla direct_messages (CRÍTICO para palomas de estado)
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'direct_messages'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE direct_messages;
+    RAISE NOTICE 'Added direct_messages table to Realtime';
+  ELSE
+    RAISE NOTICE 'direct_messages table already in Realtime';
+  END IF;
+  
+  -- Tabla typing_indicators
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables 
+    WHERE pubname = 'supabase_realtime' AND tablename = 'typing_indicators'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE typing_indicators;
+    RAISE NOTICE 'Added typing_indicators table to Realtime';
+  ELSE
+    RAISE NOTICE 'typing_indicators table already in Realtime';
   END IF;
 END $$;
 
@@ -165,6 +192,29 @@ USING (id = auth.uid())
 WITH CHECK (id = auth.uid());
 
 -- ===================================================================
+-- POLÍTICAS RLS PARA DIRECT_MESSAGES (Necesario para Realtime)
+-- ===================================================================
+
+-- Los usuarios pueden ver mensajes donde son sender o receiver
+DROP POLICY IF EXISTS "Users can view their own messages" ON direct_messages;
+CREATE POLICY "Users can view their own messages"
+ON direct_messages FOR SELECT TO authenticated
+USING (sender_id = auth.uid() OR receiver_id = auth.uid());
+
+-- Los usuarios pueden insertar mensajes como sender
+DROP POLICY IF EXISTS "Users can send messages" ON direct_messages;
+CREATE POLICY "Users can send messages"
+ON direct_messages FOR INSERT TO authenticated
+WITH CHECK (sender_id = auth.uid());
+
+-- Los usuarios pueden actualizar status de mensajes donde son receiver
+DROP POLICY IF EXISTS "Users can update message status as receiver" ON direct_messages;
+CREATE POLICY "Users can update message status as receiver"
+ON direct_messages FOR UPDATE TO authenticated
+USING (receiver_id = auth.uid())
+WITH CHECK (receiver_id = auth.uid());
+
+-- ===================================================================
 -- PASO 7: ÍNDICES PARA RENDIMIENTO
 -- ===================================================================
 
@@ -177,6 +227,51 @@ ON users(is_active, status);
 
 CREATE INDEX IF NOT EXISTS idx_users_chat_status 
 ON users(chat_status);
+
+CREATE INDEX IF NOT EXISTS idx_users_current_chat_partner 
+ON users(current_chat_partner_id);
+
+-- Índices para direct_messages (performance en queries y Realtime)
+CREATE INDEX IF NOT EXISTS idx_direct_messages_sender_receiver 
+ON direct_messages(sender_id, receiver_id);
+
+CREATE INDEX IF NOT EXISTS idx_direct_messages_status 
+ON direct_messages(status) WHERE status != 'read';
+
+CREATE INDEX IF NOT EXISTS idx_direct_messages_created_at 
+ON direct_messages(created_at DESC);
+
+-- ===================================================================
+-- PASO 8: TRIGGER PARA NOTIFICAR CAMBIOS EN DIRECT_MESSAGES
+-- ===================================================================
+
+-- Trigger para notificar cambios de status en mensajes (palomas)
+CREATE OR REPLACE FUNCTION notify_message_status_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Actualizar delivered_at cuando pasa a delivered
+  IF NEW.status = 'delivered' AND OLD.status != 'delivered' AND NEW.delivered_at IS NULL THEN
+    NEW.delivered_at = NOW();
+  END IF;
+  
+  -- Actualizar seen_at cuando pasa a read
+  IF NEW.status = 'read' AND OLD.status != 'read' AND NEW.seen_at IS NULL THEN
+    NEW.seen_at = NOW();
+    NEW.is_read = true;
+  END IF;
+  
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trigger_message_status_change ON direct_messages;
+
+CREATE TRIGGER trigger_message_status_change
+  BEFORE UPDATE OF status, is_read ON direct_messages
+  FOR EACH ROW
+  EXECUTE FUNCTION notify_message_status_change();
 
 -- ===================================================================
 -- VERIFICACIÓN Y PRUEBAS

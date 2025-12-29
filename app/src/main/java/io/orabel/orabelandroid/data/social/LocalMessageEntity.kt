@@ -17,6 +17,9 @@ data class LocalMessageEntity(
     var content: String = "",
     var createdAt: Long = 0,
     var readAt: Long = 0,
+    var deliveredAt: Long? = null,  // Timestamp cuando fue entregado
+    var seenAt: Long? = null,  // Timestamp cuando fue leído
+    var status: String? = null,  // "sent", "delivered", "read"
     
     // Cached sender info for offline display
     var senderUsername: String? = null,
@@ -72,9 +75,10 @@ data class LocalMessageEntity(
             receiverId = java.util.UUID.fromString(receiverId),
             content = content,
             isTemporary = true,
-            seenAt = null,
+            deliveredAt = deliveredAt,
+            seenAt = seenAt,
             createdAt = java.util.Date(createdAt),
-            status = "read",
+            status = status ?: "read",
             replyToId = replyToId,
             replyContextContent = replyContextContent,
             replyContextSenderUsername = replyContextSenderUsername,
@@ -97,6 +101,9 @@ data class LocalMessageEntity(
                 content = msg.content,
                 createdAt = msg.createdAt.time,
                 readAt = readAt,
+                deliveredAt = msg.deliveredAt,
+                seenAt = msg.seenAt,
+                status = msg.status,
                 senderUsername = msg.sender?.username,
                 senderAvatarUrl = msg.sender?.avatar_url,
                 replyToId = msg.replyToId?.toLong(),

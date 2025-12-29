@@ -205,7 +205,8 @@ class SocialRepository private constructor(context: Context) {
             receiverId = UUID.fromString(json.optString("receiver_id")),
             content = json.optString("content", ""),
             isTemporary = true,
-            seenAt = if (isRead) Date() else null,
+            deliveredAt = null,
+            seenAt = if (isRead) System.currentTimeMillis() else null,
             createdAt = createdAt,
             status = if (isRead) "read" else "sent"
         )
@@ -896,6 +897,21 @@ class SocialRepository private constructor(context: Context) {
                             } else Date()
                         } catch (e: Exception) { Date() }
                         
+                        // Parse timestamps for deliveredAt and seenAt
+                        val deliveredAtStr = msgJson.optString("delivered_at", "")
+                        val deliveredAt = try {
+                            if (deliveredAtStr.isNotEmpty() && deliveredAtStr != "null") {
+                                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).parse(deliveredAtStr)?.time
+                            } else null
+                        } catch (e: Exception) { null }
+                        
+                        val seenAtStr = msgJson.optString("seen_at", "")
+                        val seenAt = try {
+                            if (seenAtStr.isNotEmpty() && seenAtStr != "null") {
+                                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).parse(seenAtStr)?.time
+                            } else null
+                        } catch (e: Exception) { null }
+                        
                         // Extraer información del sender desde el JOIN
                         val senderInfo = if (msgJson.has("sender") && !msgJson.isNull("sender")) {
                             val senderJson = msgJson.getJSONObject("sender")
@@ -913,7 +929,8 @@ class SocialRepository private constructor(context: Context) {
                             receiverId = UUID.fromString(receiverId),
                             content = content,
                             isTemporary = true, // Ephemeral messaging
-                            seenAt = null,
+                            deliveredAt = deliveredAt,
+                            seenAt = seenAt,
                             createdAt = createdAt,
                             status = status,
                             replyToId = if (msgJson.has("reply_to_id") && !msgJson.isNull("reply_to_id")) msgJson.getLong("reply_to_id") else null,
@@ -1177,6 +1194,7 @@ class SocialRepository private constructor(context: Context) {
                         receiverId = UUID.fromString(receiverId),
                         content = messageContent,
                         isTemporary = true,
+                        deliveredAt = null,
                         seenAt = null,
                         createdAt = createdAt,
                         status = "sent",
@@ -2738,6 +2756,74 @@ class SocialRepository private constructor(context: Context) {
     }
     
     /**
+     * Suscribe a cambios de status en mensajes (para palomas: sent → delivered → read).
+     * Emite pares (messageId, newStatus) cuando un mensaje cambia de estado.
+     */
+    fun subscribeToMessageStatusChanges(partnerId: String): Flow<Pair<Long, String>> = callbackFlow {
+        val currentUserId = getCurrentUserId() ?: run {
+            Log.e(TAG, "❌ subscribeToMessageStatusChanges: No current user ID")
+            close()
+            return@callbackFlow
+        }
+        
+        Log.d(TAG, "📬 [MSG_STATUS] Subscribing to message status changes | Partner: $partnerId")
+        
+        val channel = io.orabel.orabelandroid.auth.SupabaseClient.client.realtime.channel("msg_status:$currentUserId:$partnerId")
+        
+        val postgresFlow = channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+            table = "direct_messages"
+        }
+        
+        val realtimeJob = launch {
+            try {
+                postgresFlow.collect { action ->
+                    val jsonRecord = action.record as? JsonObject ?: return@collect
+                    
+                    val senderId = jsonRecord["sender_id"]?.jsonPrimitive?.content ?: ""
+                    val receiverId = jsonRecord["receiver_id"]?.jsonPrimitive?.content ?: ""
+                    
+                    // Filtrar: solo mensajes de esta conversación
+                    if ((senderId == currentUserId && receiverId == partnerId) ||
+                        (senderId == partnerId && receiverId == currentUserId)) {
+                        
+                        val messageId = jsonRecord["id"]?.jsonPrimitive?.content?.toLongOrNull() ?: return@collect
+                        val newStatus = jsonRecord["status"]?.jsonPrimitive?.content ?: "sent"
+                        
+                        Log.d(TAG, "📬 [MSG_STATUS] Message $messageId status changed to: $newStatus")
+                        trySend(Pair(messageId, newStatus))
+                    }
+                }
+            } catch (e: Exception) {
+                if (e !is CancellationException) {
+                    Log.e(TAG, "❌ [MSG_STATUS] Flow error: ${e.message}", e)
+                }
+                close(e)
+            }
+        }
+        
+        launch {
+            try {
+                channel.subscribe()
+                Log.d(TAG, "✅ [MSG_STATUS] Subscribed to status changes")
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ [MSG_STATUS] Subscription error: ${e.message}")
+            }
+        }
+        
+        awaitClose {
+            Log.d(TAG, "🔌 [MSG_STATUS] Closing subscription")
+            realtimeJob.cancel()
+            launch { 
+                try {
+                    channel.unsubscribe()
+                } catch (e: Exception) {
+                    Log.e(TAG, "❌ [MSG_STATUS] Unsubscribe error: ${e.message}")
+                }
+            }
+        }
+    }
+    
+    /**
      * Actualiza el estado del usuario (online/offline/chatting).
      */
     suspend fun updateUserStatus(status: String): Result<Unit> = withContext(Dispatchers.IO) {
@@ -3046,10 +3132,19 @@ class SocialRepository private constructor(context: Context) {
             Date()
         }
         
+        val deliveredAtStr = jsonRecord["delivered_at"]?.jsonPrimitive?.content
+        val deliveredAt = deliveredAtStr?.let {
+            try {
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).parse(it)?.time
+            } catch (e: Exception) {
+                null
+            }
+        }
+        
         val seenAtStr = jsonRecord["seen_at"]?.jsonPrimitive?.content
         val seenAt = seenAtStr?.let {
             try {
-                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).parse(it)
+                java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.US).parse(it)?.time
             } catch (e: Exception) {
                 null
             }
@@ -3069,6 +3164,7 @@ class SocialRepository private constructor(context: Context) {
             receiverId = UUID.fromString(receiverIdStr),
             content = jsonRecord["content"]?.jsonPrimitive?.content ?: "",
             isTemporary = jsonRecord["is_temporary"]?.jsonPrimitive?.content?.toBoolean() ?: true,
+            deliveredAt = deliveredAt,
             seenAt = seenAt,
             createdAt = createdAt,
             status = jsonRecord["status"]?.jsonPrimitive?.content,
@@ -3194,6 +3290,10 @@ class SocialRepository private constructor(context: Context) {
             
             if (conn.responseCode in 200..299) {
                 Log.d(TAG, "✅ Message $messageId marked as delivered")
+                
+                // Actualizar en local storage
+                updateLocalMessageStatus(messageId, "delivered", System.currentTimeMillis(), null)
+                
                 Result.success(Unit)
             } else {
                 Log.e(TAG, "❌ Error marking message as delivered: ${conn.responseCode}")
@@ -3202,6 +3302,86 @@ class SocialRepository private constructor(context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "❌ Exception marking message as delivered: ${e.message}")
             Result.failure(e)
+        }
+    }
+    
+    /**
+     * Marca un mensaje como leído (read) en el servidor.
+     * Implementa patrón efímero: marca como read, guarda localmente y ELIMINA del servidor.
+     */
+    suspend fun markMessageAsRead(messageId: Long): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            // 1. Actualizar en local storage PRIMERO (para evitar pérdida)
+            updateLocalMessageStatus(messageId, "read", null, System.currentTimeMillis())
+            Log.d(TAG, "💾 [EPHEMERAL] Saved read status to local storage FIRST")
+            
+            // 2. Marcar como leído en servidor
+            val patchUrl = "$SUPABASE_URL/rest/v1/direct_messages?id=eq.$messageId"
+            val patchConn = createConnection(patchUrl)
+            patchConn.requestMethod = "PATCH"
+            patchConn.setRequestProperty("Content-Type", "application/json")
+            patchConn.doOutput = true
+            
+            val body = JSONObject().apply {
+                put("status", "read")
+                put("seen_at", java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").apply {
+                    timeZone = TimeZone.getTimeZone("UTC")
+                }.format(Date()))
+            }
+            
+            OutputStreamWriter(patchConn.outputStream).use { it.write(body.toString()) }
+            
+            if (patchConn.responseCode in 200..299) {
+                Log.d(TAG, "✅ [EPHEMERAL] Marked message $messageId as read")
+                
+                // 3. ELIMINAR del servidor (patrón efímero)
+                val deleteUrl = "$SUPABASE_URL/rest/v1/direct_messages?id=eq.$messageId"
+                val deleteConn = createConnection(deleteUrl)
+                deleteConn.requestMethod = "DELETE"
+                
+                if (deleteConn.responseCode in 200..299) {
+                    Log.d(TAG, "🗑️ [EPHEMERAL] Deleted message $messageId from server after marking as read")
+                } else {
+                    Log.w(TAG, "⚠️ [EPHEMERAL] Could not delete message from server: ${deleteConn.responseCode}")
+                }
+                
+                Result.success(Unit)
+            } else {
+                Log.e(TAG, "❌ Error marking message as read: ${patchConn.responseCode}")
+                Result.failure(Exception("Error marking message as read"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Exception marking message as read: ${e.message}")
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Actualiza el status de un mensaje en local storage.
+     * Esta función es pública para permitir actualizaciones desde la UI cuando se reciben eventos de Realtime.
+     */
+    fun updateLocalMessageStatus(
+        messageId: Long,
+        newStatus: String,
+        deliveredAt: Long?,
+        seenAt: Long?
+    ) {
+        try {
+            val query = localMessagesBox.query().equal(LocalMessageEntity_.messageId, messageId).build()
+            val existingMessages = query.find()
+            
+            if (existingMessages.isNotEmpty()) {
+                val localMessage = existingMessages.first()
+                localMessage.status = newStatus
+                if (deliveredAt != null) localMessage.deliveredAt = deliveredAt
+                if (seenAt != null) localMessage.seenAt = seenAt
+                localMessagesBox.put(localMessage)
+                Log.d(TAG, "💾 Updated message $messageId in local storage: status=$newStatus")
+            } else {
+                Log.w(TAG, "⚠️ Message $messageId not found in local storage")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error updating message status in local: ${e.message}")
         }
     }
 }

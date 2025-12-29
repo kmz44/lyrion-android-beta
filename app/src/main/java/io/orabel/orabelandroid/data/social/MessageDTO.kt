@@ -13,7 +13,8 @@ data class MessageDTO(
     val receiverId: UUID,
     val content: String,
     val isTemporary: Boolean = true,  // Ephemeral pattern
-    val seenAt: Date? = null,
+    val deliveredAt: Long? = null,  // Timestamp cuando fue entregado
+    val seenAt: Long? = null,  // Timestamp cuando fue leído (antes era Date?)
     val createdAt: Date,
     val status: String? = null,  // "sent", "delivered", "read"
     

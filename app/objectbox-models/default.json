@@ -923,7 +923,7 @@
     },
     {
       "id": "19:3291993240135105860",
-      "lastPropertyId": "12:2558593659823493833",
+      "lastPropertyId": "15:5724577720473623348",
       "name": "LocalMessageEntity",
       "properties": [
         {
@@ -985,6 +985,21 @@
         {
           "id": "12:2558593659823493833",
           "name": "replyContextSenderUsername",
+          "type": 9
+        },
+        {
+          "id": "13:6996145111707060537",
+          "name": "deliveredAt",
+          "type": 6
+        },
+        {
+          "id": "14:5013555753193776282",
+          "name": "seenAt",
+          "type": 6
+        },
+        {
+          "id": "15:5724577720473623348",
+          "name": "status",
           "type": 9
         }
       ],
