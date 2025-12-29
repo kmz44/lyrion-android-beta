@@ -5,7 +5,7 @@ import java.util.Date
 
 /**
  * DTO para perfiles de usuario en la red social.
- * Corresponde a la tabla 'profiles' en Supabase.
+ * Corresponde a la tabla 'users' en Supabase.
  */
 data class ProfileDTO(
     val id: UUID,
@@ -24,6 +24,7 @@ data class ProfileDTO(
     val estadoCivil: String? = null,
     val estadoRegion: String? = null,
     val status: String? = null,
+    val chatStatus: String? = "offline", // Nuevo campo independiente
     val createdAt: Date? = null
 ) {
     val displayName: String

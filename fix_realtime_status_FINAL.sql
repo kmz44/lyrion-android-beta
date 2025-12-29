@@ -42,7 +42,7 @@ END;
 $$;
 
 CREATE TRIGGER trigger_status_realtime
-  BEFORE UPDATE OF is_active, status ON users
+  BEFORE UPDATE OF is_active, status, chat_status ON users
   FOR EACH ROW
   EXECUTE FUNCTION notify_status_change();
 
@@ -174,6 +174,9 @@ WHERE is_active = true;
 
 CREATE INDEX IF NOT EXISTS idx_users_status_active 
 ON users(is_active, status);
+
+CREATE INDEX IF NOT EXISTS idx_users_chat_status 
+ON users(chat_status);
 
 -- ===================================================================
 -- VERIFICACIÓN Y PRUEBAS

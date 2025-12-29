@@ -274,8 +274,8 @@ fun ModernProfileScreen(
                                     onClick = { 
                                         scope.launch {
                                             val activityManager = io.orabel.orabelandroid.utils.UserActivityManager.getInstance(context)
-                                            activityManager.enterChat() // Fuerza estado Online
-                                            repository.fetchCurrentUserProfile() // Recargar para ver cambio visual
+                                            activityManager.setManualStatus("available")
+                                            repository.fetchCurrentUserProfile() 
                                         }
                                     },
                                     modifier = Modifier.weight(1f),
@@ -294,7 +294,7 @@ fun ModernProfileScreen(
                                     onClick = { 
                                         scope.launch {
                                             val activityManager = io.orabel.orabelandroid.utils.UserActivityManager.getInstance(context)
-                                            activityManager.exitChat() // Fuerza estado Offline con debounce
+                                            activityManager.setManualStatus("offline")
                                             repository.fetchCurrentUserProfile() 
                                         }
                                     },

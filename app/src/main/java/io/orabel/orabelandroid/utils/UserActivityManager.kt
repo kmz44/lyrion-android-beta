@@ -77,12 +77,10 @@ class UserActivityManager private constructor(
         
         scope.launch {
             try {
-                // Marcar como activo y disponible
-                // Marcar como activo pero "offline" por defecto (según requerimiento estricto)
-                // El usuario solo quiere verse "online" cuando entra al chat
+                // Marcar como activo y disponible al abrir la aplicación
                 repository.updateUserActiveStatus(true)
-                repository.updateUserStatus("offline")
-                _currentStatus.value = "offline"
+                repository.updateUserStatus("available")
+                _currentStatus.value = "available"
                 
                 // Iniciar heartbeat
                 startHeartbeat()
@@ -124,38 +122,38 @@ class UserActivityManager private constructor(
     private var statusJob: Job? = null
 
     /**
-     * Helper para programar estado OFFLINE con debounce.
-     * Evita que transiciones rápidas marquen al usuario como desconectado incorrectamente.
+     * Helper para programar reversión de estado con debounce.
+     * Si la app sigue activa, vuelve a "available". Si no, va a "offline".
      */
-    private fun scheduleOfflineExclusivity() {
-        Log.d(TAG, "⏳ [ACTIVITY] Scheduling OFF-LINE state (debounce)")
+    private fun scheduleStatusReversion() {
+        Log.d(TAG, "⏳ [ACTIVITY] Scheduling status reversion (debounce)")
         statusJob?.cancel()
 
         // Asegurar que el scope esté vivo
         if (!scope.coroutineContext.job.isActive) {
-            Log.w(TAG, "⚠️ [ACTIVITY] Scope was dead, reviving for offline update")
+            Log.w(TAG, "⚠️ [ACTIVITY] Scope was dead, reviving for status update")
             scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
         }
 
         statusJob = scope.launch {
-            Log.d(TAG, "⏳ [ACTIVITY] Status debounce started (500ms)")
-            // 1. Esperar (CANCELABLE) para dar oportunidad a enterChat de interrumpir
+            Log.d(TAG, "⏳ [ACTIVITY] Reversion debounce started (500ms)")
             try {
                 delay(500)
             } catch (e: CancellationException) {
-                Log.d(TAG, "❌ [ACTIVITY] Status debounce CANCELLED")
+                Log.d(TAG, "❌ [ACTIVITY] Reversion debounce CANCELLED")
                 throw e
             }
             
-            // 2. Si llegamos aquí, confirmamos el estado Offline (NON-CANCELLABLE para asegurar consistencia)
             withContext(NonCancellable) {
-                Log.d(TAG, "🔒 [ACTIVITY] Executing debounced Offline update")
-                _currentStatus.value = "offline"
-                val result = repository.updateUserStatus("offline")
+                val targetStatus = if (_isAppActive.value) "available" else "offline"
+                Log.d(TAG, "🔒 [ACTIVITY] Executing debounced update to: $targetStatus")
+                
+                _currentStatus.value = targetStatus
+                val result = repository.updateUserStatus(targetStatus)
                 result.onSuccess {
-                    Log.d(TAG, "✅ [ACTIVITY] Successfully marked as OFFLINE (Debounced)")
+                    Log.d(TAG, "✅ [ACTIVITY] Successfully updated status to $targetStatus")
                 }.onFailure { e ->
-                    Log.e(TAG, "❌ [ACTIVITY] Failed to mark as offline: ${e.message}")
+                    Log.e(TAG, "❌ [ACTIVITY] Failed to update status: ${e.message}")
                 }
             }
         }
@@ -166,8 +164,7 @@ class UserActivityManager private constructor(
      */
     fun enterMessaging() {
         Log.d(TAG, "💬 Entering messaging screen")
-        // Inbox también se considera "Offline" en la lógica estricta
-        scheduleOfflineExclusivity()
+        scheduleStatusReversion()
     }
     
     /**
@@ -177,8 +174,6 @@ class UserActivityManager private constructor(
         Log.d(TAG, "💬 [ACTIVITY] Requesting ENTER CHAT state")
         // 🛑 CANCELAR cualquier intento de poner offline
         statusJob?.cancel()
-        
-        _currentStatus.value = "chatting"
         
         // Asegurar que el scope esté vivo
         if (!scope.coroutineContext.job.isActive) {
@@ -204,7 +199,7 @@ class UserActivityManager private constructor(
      */
     fun exitChat() {
         Log.d(TAG, "💬 Exiting specific chat")
-        scheduleOfflineExclusivity()
+        scheduleStatusReversion()
     }
     
     /**
@@ -212,8 +207,86 @@ class UserActivityManager private constructor(
      */
     fun exitMessaging() {
         Log.d(TAG, "💬 Exiting messaging screen")
-        scheduleOfflineExclusivity()
+        scheduleStatusReversion()
     }
+
+    /**
+     * Permite establecer un estado manualmente (ej: desde el perfil)
+     */
+    fun setManualStatus(status: String) {
+        Log.d(TAG, "👤 [ACTIVITY] Setting manual status: $status")
+        statusJob?.cancel()
+        
+        // Asegurar que el scope esté vivo
+        if (!scope.coroutineContext.job.isActive) {
+            Log.w(TAG, "⚠️ [ACTIVITY] Scope was dead, reviving for setManualStatus")
+            scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        }
+
+        _currentStatus.value = status
+        
+        scope.launch {
+            val result = repository.updateUserStatus(status)
+            result.onSuccess {
+                Log.d(TAG, "✅ [ACTIVITY] Manual status $status updated in DB")
+            }.onFailure { e ->
+                Log.e(TAG, "❌ [ACTIVITY] Failed to set manual status: ${e.message}")
+            }
+        }
+    }
+    
+    // ========== FUNCIONES ESPECÍFICAS PARA CHAT_STATUS ==========
+    
+    /**
+     * Llamar cuando el usuario entra a un chat directo.
+     * Actualiza SOLO el campo chat_status (no afecta 'status').
+     * @param partnerId ID del usuario con quien se está chateando
+     */
+    fun enterDirectChat(partnerId: String) {
+        Log.d(TAG, "💬 [CHAT_STATUS] Entering direct chat with $partnerId - setting chat_status='chatting'")
+        statusJob?.cancel()
+        
+        if (!scope.coroutineContext.job.isActive) {
+            Log.w(TAG, "⚠️ [CHAT_STATUS] Scope was dead, reviving for enterDirectChat")
+            scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        }
+        
+        scope.launch {
+            Log.d(TAG, "🚀 [CHAT_STATUS] Executing enterDirectChat background task")
+            val result = repository.updateChatStatus("chatting", partnerId)
+            result.onSuccess {
+                Log.d(TAG, "✅ [CHAT_STATUS] Successfully set chat_status='chatting' with partner=$partnerId")
+            }.onFailure { e ->
+                Log.e(TAG, "❌ [CHAT_STATUS] Failed to set chat_status='chatting': ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Llamar cuando el usuario sale de un chat directo.
+     * Actualiza SOLO el campo chat_status (no afecta 'status').
+     */
+    fun exitDirectChat() {
+        Log.d(TAG, "💬 [CHAT_STATUS] Exiting direct chat - setting chat_status='offline'")
+        statusJob?.cancel()
+        
+        if (!scope.coroutineContext.job.isActive) {
+            Log.w(TAG, "⚠️ [CHAT_STATUS] Scope was dead, reviving for exitDirectChat")
+            scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        }
+        
+        scope.launch {
+            Log.d(TAG, "🚀 [CHAT_STATUS] Executing exitDirectChat background task")
+            val result = repository.updateChatStatus("offline", null)
+            result.onSuccess {
+                Log.d(TAG, "✅ [CHAT_STATUS] Successfully set chat_status='offline'")
+            }.onFailure { e ->
+                Log.e(TAG, "❌ [CHAT_STATUS] Failed to set chat_status='offline': ${e.message}")
+            }
+        }
+    }
+    
+    // ========== FIN FUNCIONES CHAT_STATUS ==========
     
     /**
      * Iniciar heartbeat que mantiene is_active = true

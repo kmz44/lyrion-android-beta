@@ -73,8 +73,8 @@ fun DirectChatScreen(
         lastMessageId = messages.maxOfOrNull { it.id } ?: 0L
         isLoading = false
         
-        // Notificar al ActivityManager que entramos a chat
-        activityManager.enterChat()
+        // Notificar al ActivityManager que entramos a chat directo (actualiza chat_status)
+        activityManager.enterDirectChat(targetUser.id.toString())
     }
     
     // 2. Realtime message subscription (SIN POLLING)
@@ -114,38 +114,38 @@ fun DirectChatScreen(
         }
     }
     
-    // 4. Subscribe to user status (Realtime ÚNICAMENTE - sin polling)
+    // 4. Subscribe to CHAT_STATUS (Realtime ÚNICAMENTE - sin polling)
     LaunchedEffect(targetUser.id) {
         // 1. Iniciar fetch inicial en paralelo (no bloquear suscripción)
         launch {
             try {
-                val initialStatus = repository.getUserStatus(targetUser.id.toString())
+                val initialChatStatus = repository.getChatStatus(targetUser.id.toString(), currentUserId ?: "")
                 // Solo actualizar si no hemos recibido ya un evento de realtime (race condition benigna)
                 if (userStatus == "offline") { 
-                    userStatus = initialStatus
+                    userStatus = initialChatStatus
                 }
             } catch (e: Exception) {
                 // Ignore error on initial fetch
             }
         }
         
-        // 2. Iniciar Realtime subscription INMEDIATAMENTE
+        // 2. Iniciar Realtime subscription INMEDIATAMENTE para CHAT_STATUS
         launch {
             try {
-                repository.subscribeToUserStatus(targetUser.id.toString()).collect { status ->
-                    android.util.Log.d("DirectChat", "🟢 [UI] Realtime status update: $status")
-                    userStatus = status
+                repository.subscribeToChatStatus(targetUser.id.toString(), currentUserId ?: "").collect { chatStatus ->
+                    android.util.Log.d("DirectChat", "🟢 [UI] Realtime CHAT_STATUS update: $chatStatus")
+                    userStatus = chatStatus
                 }
             } catch (e: Exception) {
-                android.util.Log.e("DirectChat", "❌ Status Realtime error: ${e.message}")
+                android.util.Log.e("DirectChat", "❌ Chat Status Realtime error: ${e.message}")
             }
         }
     }
     
-    // 5. Reset status on leave
+    // 5. Reset chat_status on leave
     DisposableEffect(Unit) {
         onDispose {
-            activityManager.exitChat()
+            activityManager.exitDirectChat()
             scope.launch {
                 repository.setTypingIndicator(targetUser.id.toString(), false)
             }
@@ -189,12 +189,12 @@ fun DirectChatScreen(
             // 2. GLASS HEADER
             GlassHeader(targetUser = targetUser, userStatus = userStatus, onBack = onBack)
             
-            // DEBUG: Botón para probar estados (SOLO PARA PRUEBAS)
+            // DEBUG: Botón para probar chat_status (SOLO PARA PRUEBAS)
             Column(
                 modifier = Modifier.fillMaxWidth().padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Mi Estado actual: $myStatus", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
+                Text("Mi chat_status actual: $myStatus", color = Color.White.copy(alpha = 0.5f), fontSize = 10.sp)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
@@ -202,22 +202,22 @@ fun DirectChatScreen(
                     Button(
                         onClick = { 
                             myStatus = "chatting"
-                            activityManager.enterChat() 
+                            activityManager.enterDirectChat(targetUser.id.toString()) // ✅ Con partnerId
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
                         modifier = Modifier.padding(end = 8.dp)
                     ) {
-                        Text("Test: Online", color = Color.White)
+                        Text("Chat: Activo", color = Color.White, fontSize = 12.sp)
                     }
                     
                     Button(
                         onClick = { 
                             myStatus = "offline"
-                            activityManager.exitChat() 
+                            activityManager.exitDirectChat() // ✅ Limpia partnerId
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                     ) {
-                        Text("Test: Offline", color = Color.White)
+                        Text("Chat: Offline", color = Color.White, fontSize = 12.sp)
                     }
                 }
             }

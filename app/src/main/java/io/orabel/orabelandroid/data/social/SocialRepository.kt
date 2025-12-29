@@ -171,7 +171,8 @@ class SocialRepository private constructor(context: Context) {
             peso_kg = if (json.has("peso_kg") && !json.isNull("peso_kg")) json.getInt("peso_kg") else null,
             estadoCivil = optStringNullable("estado_civil"),
             estadoRegion = optStringNullable("estado_region"),
-            status = optStringNullable("status")
+            status = optStringNullable("status"),
+            chatStatus = optStringNullable("chat_status")
         )
     }
     
@@ -2907,6 +2908,131 @@ class SocialRepository private constructor(context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error getting user status: ${e.message}")
             "offline"
+        }
+    }
+    
+    /**
+     * Actualiza el estado de chat específico (chat_status: chatting/offline).
+     * Independiente del campo 'status' general del usuario.
+     * @param chatStatus 'chatting' o 'offline'
+     * @param partnerId ID del usuario con quien está chateando (null si offline)
+     */
+    suspend fun updateChatStatus(chatStatus: String, partnerId: String? = null): Result<Unit> = withContext(Dispatchers.IO) {
+        val userId = getCurrentUserId() ?: run {
+            Log.e(TAG, "❌ Cannot update chat_status: userId is NULL")
+            return@withContext Result.failure(Exception("No user"))
+        }
+        Log.d(TAG, "📡 [CHAT_STATUS_UPDATE] Setting chat_status='$chatStatus' partnerId='$partnerId' for userId=$userId")
+        
+        try {
+            val urlString = "$SUPABASE_URL/rest/v1/users?id=eq.$userId"
+            val conn = createConnection(urlString)
+            conn.requestMethod = "PATCH"
+            conn.setRequestProperty("Content-Type", "application/json")
+            conn.doOutput = true
+            
+            val body = JSONObject().apply {
+                put("chat_status", chatStatus)
+                put("current_chat_partner_id", partnerId)
+            }
+            
+            Log.d(TAG, "📤 [CHAT_STATUS_UPDATE] Sending body: $body")
+            OutputStreamWriter(conn.outputStream).use { it.write(body.toString()) }
+            
+            val responseCode = conn.responseCode
+            val response = conn.readResponse()
+            
+            if (responseCode in 200..299) {
+                Log.d(TAG, "✅ [CHAT_STATUS_UPDATE] Success! chat_status=$chatStatus")
+                Result.success(Unit)
+            } else {
+                Log.e(TAG, "❌ [CHAT_STATUS_UPDATE] Failed! Code=$responseCode, Response=$response")
+                Result.failure(Exception("Error $responseCode"))
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ [CHAT_STATUS_UPDATE] Exception: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+    
+    /**
+     * Obtiene el estado de chat actual del usuario Y con quién está chateando.
+     * Retorna 'chatting' solo si está chateando CON EL CURRENT USER.
+     */
+    suspend fun getChatStatus(userId: String, currentUserId: String): String = withContext(Dispatchers.IO) {
+        try {
+            val urlString = "$SUPABASE_URL/rest/v1/users?id=eq.$userId&select=chat_status,current_chat_partner_id"
+            val conn = createConnection(urlString)
+            conn.requestMethod = "GET"
+            
+            val response = conn.readResponse()
+            if (conn.responseCode == 200) {
+                val jsonArray = JSONArray(response)
+                if (jsonArray.length() > 0) {
+                    val obj = jsonArray.getJSONObject(0)
+                    val chatStatus = obj.optString("chat_status", "offline")
+                    val chatPartnerId = obj.optString("current_chat_partner_id", null)
+                    
+                    // Solo retornar 'chatting' si está chateando CON NOSOTROS
+                    val finalStatus = if (chatStatus == "chatting" && chatPartnerId == currentUserId) {
+                        "chatting"
+                    } else {
+                        "offline"
+                    }
+                    
+                    Log.d(TAG, "📊 Got chat_status for $userId: $finalStatus (raw=$chatStatus, partner=$chatPartnerId, me=$currentUserId)")
+                    return@withContext finalStatus
+                }
+            }
+            Log.d(TAG, "📊 No chat_status found for user $userId, defaulting to offline")
+            "offline"
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ Error getting chat_status: ${e.message}")
+            "offline"
+        }
+    }
+    
+    /**
+     * Suscribe al estado de chat del partner (chatting/offline).
+     * Independiente del campo 'status'.
+     * Retorna 'chatting' solo si el partner está chateando CON NOSOTROS.
+     */
+    fun subscribeToChatStatus(partnerId: String, currentUserId: String): Flow<String> = callbackFlow {
+        Log.d(TAG, "👤 Subscribing to chat_status for partner: $partnerId (currentUser=$currentUserId)")
+        val channel = io.orabel.orabelandroid.auth.SupabaseClient.client.realtime.channel("chat_status:$partnerId")
+        
+        val job = launch {
+            channel.postgresChangeFlow<PostgresAction.Update>(schema = "public") {
+                table = "users"
+            }.collect { action ->
+                val jsonRecord = action.record as? JsonObject ?: return@collect
+                
+                // Client-side filtering
+                val userId = jsonRecord["id"]?.jsonPrimitive?.content
+                if (userId != partnerId) return@collect
+                
+                val chatStatus = jsonRecord["chat_status"]?.jsonPrimitive?.content ?: "offline"
+                val chatPartnerId = jsonRecord["current_chat_partner_id"]?.jsonPrimitive?.content
+                
+                // Solo emitir 'chatting' si está chateando CON NOSOTROS
+                val finalStatus = if (chatStatus == "chatting" && chatPartnerId == currentUserId) {
+                    "chatting"
+                } else {
+                    "offline"
+                }
+                
+                Log.d(TAG, "✅ [REALTIME] chat_status update for $partnerId: $finalStatus (raw=$chatStatus, partner=$chatPartnerId)")
+                trySend(finalStatus)
+            }
+        }
+        
+        channel.subscribe()
+        Log.d(TAG, "✅ Subscribed to chat_status for: $partnerId")
+        
+        awaitClose {
+            Log.d(TAG, "🔴 Unsubscribing from chat_status: $partnerId")
+            job.cancel()
+            launch { channel.unsubscribe() }
         }
     }
     
