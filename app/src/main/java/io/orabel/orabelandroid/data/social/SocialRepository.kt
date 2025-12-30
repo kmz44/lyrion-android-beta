@@ -5,10 +5,14 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.app.Person
+import androidx.core.graphics.drawable.IconCompat
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.channel
@@ -41,6 +45,11 @@ import io.objectbox.Box
 import io.objectbox.kotlin.query
 import io.objectbox.query.QueryBuilder
 import io.objectbox.query.QueryBuilder.StringOrder
+import io.orabel.orabelandroid.utils.NetworkUtils
+import java.io.File
+import java.io.FileOutputStream
+import kotlin.math.absoluteValue
+import java.text.Normalizer
 
 /**
  * Repositorio para manejar operaciones de la red social con Supabase.
@@ -49,6 +58,15 @@ class SocialRepository private constructor(context: Context) {
     private val appContext = context.applicationContext
 
     private val senderDisplayNameCache = mutableMapOf<String, String>()
+
+    private data class NotificationMessageSnippet(
+        val content: String,
+        val timestampMs: Long
+    )
+
+    // In-memory history to build MessagingStyle per user.
+    // Keyed by senderId string.
+    private val notificationHistoryBySender = mutableMapOf<String, ArrayDeque<NotificationMessageSnippet>>()
 
     private data class PendingStatusUpdate(
         val status: String,
@@ -63,6 +81,14 @@ class SocialRepository private constructor(context: Context) {
     // ObjectBox for local message storage (ephemeral pattern)
     private val localMessagesBox: Box<LocalMessageEntity> = 
         ObjectBoxStore.store.boxFor(LocalMessageEntity::class.java)
+
+    // ObjectBox for local user profile (offline-first display)
+    private val localUserProfileBox: Box<LocalUserProfileEntity> =
+        ObjectBoxStore.store.boxFor(LocalUserProfileEntity::class.java)
+
+    // ObjectBox for local alias names (user-defined display name)
+    private val localUserAliasBox: Box<LocalUserAliasEntity> =
+        ObjectBoxStore.store.boxFor(LocalUserAliasEntity::class.java)
     
     companion object {
         private const val TAG = "SocialRepository"
@@ -95,6 +121,516 @@ class SocialRepository private constructor(context: Context) {
     private val _currentUserProfile = MutableStateFlow<ProfileDTO?>(null)
     val currentUserProfile: StateFlow<ProfileDTO?> = _currentUserProfile.asStateFlow()
 
+    init {
+        // Best-effort: if we already have a session, preload last known profile from local DB.
+        runCatching {
+            val userId = getCurrentUserId()
+            if (!userId.isNullOrBlank()) {
+                loadLocalProfileIntoState(userId)
+            }
+        }
+    }
+
+    private fun loadLocalProfileIntoState(userId: String) {
+        val cached = getLocalProfile(userId, preferLocalImages = true)
+        if (cached != null) {
+            _currentUserProfile.value = cached
+        }
+    }
+
+    fun getLocalAlias(userId: String): String? {
+        return try {
+            localUserAliasBox
+                .query(LocalUserAliasEntity_.userId.equal(userId))
+                .build()
+                .findFirst()
+                ?.aliasName
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    // =======================
+    // AI (Online) Chat Context
+    // =======================
+
+    private data class ConversationMatchCandidate(
+        val otherUserId: String,
+        val displayName: String,
+        val matchedBy: String,
+        val score: Int
+    )
+
+    private fun normalizeForMatching(value: String?): String {
+        if (value.isNullOrBlank()) return ""
+        val trimmed = value.trim().lowercase()
+        val normalized = Normalizer.normalize(trimmed, Normalizer.Form.NFD)
+        // Remove diacritics/accents
+        return normalized.replace("\\p{InCombiningDiacriticalMarks}+".toRegex(), "")
+    }
+
+    private fun isEmailLike(value: String?): Boolean {
+        val v = value?.trim() ?: return false
+        val at = v.indexOf('@')
+        if (at <= 0) return false
+        val dotAfter = v.indexOf('.', startIndex = at + 1)
+        return dotAfter > at + 1
+    }
+
+    private fun computeMatchScore(normalizedQuery: String, normalizedCandidate: String): Int {
+        if (normalizedCandidate.isBlank()) return 0
+        if (normalizedCandidate.length < 3) return 0
+
+        if (normalizedQuery == normalizedCandidate) return 120
+
+        // Whole-word match is stronger than plain contains
+        val wholeWord = runCatching {
+            Regex("\\b" + Regex.escape(normalizedCandidate) + "\\b").containsMatchIn(normalizedQuery)
+        }.getOrDefault(false)
+
+        if (wholeWord) return 100
+        if (normalizedQuery.startsWith(normalizedCandidate)) return 80
+        if (normalizedQuery.contains("@" + normalizedCandidate)) return 80
+        if (normalizedQuery.contains(normalizedCandidate)) return 60
+        return 0
+    }
+
+    /**
+     * Busca la mejor conversación local mencionada en la pregunta del usuario.
+     * IMPORTANTE: usa SOLO datos locales (ObjectBox) para no disparar red extra.
+     */
+    private suspend fun findBestConversationMentionLocal(userQuery: String): ConversationMatchCandidate? =
+        withContext(Dispatchers.IO) {
+            val currentUserId = getCurrentUserId() ?: return@withContext null
+
+            val normalizedQuery = normalizeForMatching(userQuery)
+            if (normalizedQuery.isBlank()) return@withContext null
+
+            // Reutilizamos el mismo patrón que fetchConversations(): leer todos los mensajes locales y agrupar.
+            val allMessages = runCatching { localMessagesBox.query().build().find() }.getOrDefault(emptyList())
+            if (allMessages.isEmpty()) return@withContext null
+
+            val otherUserIds = mutableSetOf<String>()
+            allMessages.forEach { msg ->
+                val other = when {
+                    msg.senderId == currentUserId -> msg.receiverId
+                    msg.receiverId == currentUserId -> msg.senderId
+                    else -> null
+                }
+                if (!other.isNullOrBlank()) otherUserIds.add(other)
+            }
+            if (otherUserIds.isEmpty()) return@withContext null
+
+            var best: ConversationMatchCandidate? = null
+            var secondBestScore = 0
+            var bestCountAtScore = 0
+
+            for (otherId in otherUserIds) {
+                val alias = getLocalAlias(otherId)
+                val cachedProfile = runCatching {
+                    localUserProfileBox
+                        .query(LocalUserProfileEntity_.userId.equal(otherId))
+                        .build()
+                        .findFirst()
+                        ?.withRemoteImages()
+                }.getOrNull()
+
+                val fullName = listOfNotNull(
+                    cachedProfile?.nombre?.takeIf { it.isNotBlank() },
+                    cachedProfile?.apellido?.takeIf { it.isNotBlank() }
+                ).joinToString(" ").trim().ifBlank { null }
+
+                // username puede venir del cache local del perfil o del último mensaje conocido
+                val usernameFromMsg = allMessages.firstOrNull { it.senderId == otherId }?.senderUsername
+                val usernameRaw = cachedProfile?.username ?: usernameFromMsg
+                val username = usernameRaw?.takeIf { !isEmailLike(it) }
+
+                // Candidatos de match (en orden de prioridad)
+                val candidates = listOf(
+                    Triple("alias", alias, alias),
+                    Triple("fullname", fullName, fullName),
+                    Triple("username", username?.removePrefix("@"), username?.removePrefix("@"))
+                )
+
+                var bestLocalScore = 0
+                var bestLocalBy = ""
+                var bestLocalLabel = ""
+                for ((by, label, raw) in candidates) {
+                    val cand = normalizeForMatching(raw)
+                    val score = computeMatchScore(normalizedQuery, cand)
+                    if (score > bestLocalScore) {
+                        bestLocalScore = score
+                        bestLocalBy = by
+                        bestLocalLabel = label ?: ""
+                    }
+                }
+
+                if (bestLocalScore <= 0) continue
+
+                val displayName = when {
+                    !alias.isNullOrBlank() -> alias
+                    !fullName.isNullOrBlank() -> fullName
+                    !username.isNullOrBlank() -> username
+                    else -> "Usuario"
+                }
+
+                val candidate = ConversationMatchCandidate(
+                    otherUserId = otherId,
+                    displayName = displayName,
+                    matchedBy = bestLocalBy,
+                    score = bestLocalScore
+                )
+
+                if (best == null || candidate.score > best!!.score) {
+                    secondBestScore = best?.score ?: 0
+                    best = candidate
+                    bestCountAtScore = 1
+                } else if (candidate.score == best!!.score) {
+                    bestCountAtScore += 1
+                } else if (candidate.score > secondBestScore) {
+                    secondBestScore = candidate.score
+                }
+            }
+
+            // Reglas: si no llega a un umbral mínimo, no adjuntar nada.
+            // Si hay ambigüedad fuerte (varios con el mismo score alto), igual retornamos el mejor,
+            // pero con score tal cual para que el prompt pueda pedir aclaración.
+            val finalBest = best
+            if (finalBest == null || finalBest.score < 50) return@withContext null
+
+            // Si hay empate fuerte, bajamos el score un poco para forzar que la IA pida confirmación.
+            if (bestCountAtScore > 1 && finalBest.score >= 100) {
+                return@withContext finalBest.copy(score = finalBest.score - 10)
+            }
+
+            finalBest
+        }
+
+    private fun looksLikeChatQuestion(normalizedQuery: String): Boolean {
+        if (normalizedQuery.isBlank()) return false
+        val keywords = listOf(
+            "chat",
+            "conversacion",
+            "conversación",
+            "mensaje",
+            "mensajes",
+            "me dijo",
+            "le dije",
+            "le dije que",
+            "me respondio",
+            "me respondio que",
+            "me respondió",
+            "relacion",
+            "relación",
+            "amistad",
+            "amigo",
+            "amiga",
+            "contacto",
+            "alias",
+            "usuario"
+        )
+        return keywords.any { normalizeForMatching(it).isNotBlank() && normalizedQuery.contains(normalizeForMatching(it)) }
+    }
+
+    private fun buildAvailableConversationsBlock(
+        currentUserId: String,
+        allMessages: List<LocalMessageEntity>,
+        maxConversations: Int = 20
+    ): String {
+        // Group by other user
+        val conversationsMap = mutableMapOf<String, MutableList<LocalMessageEntity>>()
+        allMessages.forEach { msg ->
+            val other = when {
+                msg.senderId == currentUserId -> msg.receiverId
+                msg.receiverId == currentUserId -> msg.senderId
+                else -> null
+            }
+            if (!other.isNullOrBlank()) {
+                conversationsMap.getOrPut(other) { mutableListOf() }.add(msg)
+            }
+        }
+
+        val candidates = conversationsMap.mapNotNull { (otherId, msgs) ->
+            val last = msgs.maxByOrNull { it.createdAt }
+            val alias = runCatching { getLocalAlias(otherId) }.getOrNull()
+            val cachedProfile = runCatching {
+                localUserProfileBox
+                    .query(LocalUserProfileEntity_.userId.equal(otherId))
+                    .build()
+                    .findFirst()
+                    ?.withRemoteImages()
+            }.getOrNull()
+            val fullName = listOfNotNull(
+                cachedProfile?.nombre?.takeIf { it.isNotBlank() },
+                cachedProfile?.apellido?.takeIf { it.isNotBlank() }
+            ).joinToString(" ").trim().ifBlank { null }
+            val usernameFromMsg = allMessages.firstOrNull { it.senderId == otherId }?.senderUsername
+            val usernameRaw = cachedProfile?.username ?: usernameFromMsg
+            val username = usernameRaw?.takeIf { !isEmailLike(it) }
+
+            val displayName = when {
+                !alias.isNullOrBlank() -> alias
+                !fullName.isNullOrBlank() -> fullName
+                !username.isNullOrBlank() -> username
+                else -> "Usuario"
+            }
+
+            val tags = buildList {
+                if (!alias.isNullOrBlank()) add("alias=\"$alias\"")
+                if (!fullName.isNullOrBlank()) add("nombre=\"$fullName\"")
+                if (!username.isNullOrBlank()) add("username=\"$username\"")
+            }.joinToString(", ")
+
+            val lastContent = last?.content?.trim().orEmpty()
+            val lastContentSnippet = if (lastContent.length > 120) lastContent.take(120) + "…" else lastContent
+            val lastDirection = when (last?.senderId) {
+                currentUserId -> "from_me"
+                otherId -> "from_them"
+                else -> "unknown"
+            }
+
+            Triple(
+                last?.createdAt ?: 0L,
+                otherId,
+                "- $displayName (otherUserId=$otherId, mensajes=${msgs.size}, ultimoMs=${last?.createdAt ?: 0L}, ultimoDirection=$lastDirection, ultimoMensaje=\"$lastContentSnippet\"${if (tags.isNotBlank()) ", $tags" else ""})"
+            )
+        }.sortedByDescending { it.first }
+
+        return buildString {
+            append("available_conversations=\n")
+            candidates.take(maxConversations).forEach { append(it.third).append("\n") }
+        }
+    }
+
+    /**
+     * Construye un bloque de contexto (texto) con TODO el historial local del chat y campos relevantes,
+     * para inyectarlo al system prompt de IA online.
+     *
+     * Nota: por seguridad de memoria/tokens, se aplica un máximo alto. Si se excede, se trunca y se indica.
+     */
+    suspend fun buildAiOnlineConversationContextBlock(
+        userQuery: String,
+        maxMessages: Int = 2000
+    ): String? = withContext(Dispatchers.IO) {
+        val currentUserId = getCurrentUserId() ?: return@withContext null
+
+        val normalizedQuery = normalizeForMatching(userQuery)
+
+        val allMessages = runCatching { localMessagesBox.query().build().find() }.getOrDefault(emptyList())
+        if (allMessages.isEmpty()) return@withContext null
+
+        val match = findBestConversationMentionLocal(userQuery)
+
+        // Si la pregunta parece sobre chats pero no pudimos resolver a qué contacto se refiere,
+        // damos a la IA una lista de chats disponibles para que pida aclaración.
+        if (match == null) {
+            if (!looksLikeChatQuestion(normalizedQuery)) return@withContext null
+
+            val available = buildAvailableConversationsBlock(currentUserId, allMessages)
+            return@withContext buildString {
+                append("=== CONTEXTO DE CONVERSACIÓN (SOLO PARA IA ONLINE) ===\n")
+                append("El usuario hizo una pregunta sobre una conversación, pero NO se pudo determinar con certeza el contacto.\n\n")
+                append("INSTRUCCIONES IMPORTANTES:\n")
+                append("- NO digas 'no tengo acceso' a chats: la app te da una lista local de conversaciones disponibles.\n")
+                append("- Pide al usuario que especifique el nombre/alias exacto o el username del contacto.\n")
+                append("- Sugiere 2-5 opciones de la lista (sin inventar) para que el usuario elija.\n\n")
+                append(available)
+                append("=== FIN CONTEXTO CONVERSACIÓN ===\n")
+            }
+        }
+
+        // Obtener mensajes locales del chat (bidireccional)
+        val conversationMessages = allMessages
+            .asSequence()
+            .filter {
+                (it.senderId == currentUserId && it.receiverId == match.otherUserId) ||
+                    (it.senderId == match.otherUserId && it.receiverId == currentUserId)
+            }
+            .sortedBy { it.createdAt }
+            .toList()
+
+        if (conversationMessages.isEmpty()) return@withContext null
+
+        val truncated = conversationMessages.size > maxMessages
+        val includedMessages = if (truncated) conversationMessages.takeLast(maxMessages) else conversationMessages
+
+        // Formato: JSON lines para mantener todos los campos sin perder estructura.
+        val messagesJsonLines = buildString {
+            append("[\n")
+            includedMessages.forEachIndexed { index, m ->
+                fun esc(s: String?): String {
+                    return (s ?: "")
+                        .replace("\\\\", "\\\\\\\\")
+                        .replace("\"", "\\\\\"")
+                        .replace("\n", "\\\\n")
+                        .replace("\r", "")
+                }
+
+                fun safeUsername(value: String?): String? {
+                    val v = value?.trim()
+                    if (v.isNullOrBlank()) return null
+                    if (isEmailLike(v)) return null
+                    return v
+                }
+
+                append("  {\"")
+                append("messageId\":")
+                append(m.messageId)
+                append(",\"senderId\":\"")
+                append(esc(m.senderId))
+                append("\",\"receiverId\":\"")
+                append(esc(m.receiverId))
+                append("\",\"content\":\"")
+                append(esc(m.content))
+                append("\",\"createdAt\":")
+                append(m.createdAt)
+                append(",\"readAt\":")
+                append(m.readAt)
+                append(",\"deliveredAt\":")
+                append(m.deliveredAt ?: "null")
+                append(",\"seenAt\":")
+                append(m.seenAt ?: "null")
+                append(",\"status\":")
+                if (m.status == null) append("null") else append("\"" + esc(m.status) + "\"")
+                append(",\"senderUsername\":")
+                run {
+                    val su = safeUsername(m.senderUsername)
+                    if (su == null) append("null") else append("\"" + esc(su) + "\"")
+                }
+                append(",\"senderAvatarUrl\":")
+                if (m.senderAvatarUrl == null) append("null") else append("\"" + esc(m.senderAvatarUrl) + "\"")
+                append(",\"replyToId\":")
+                append(m.replyToId ?: "null")
+                append(",\"replyContextContent\":")
+                if (m.replyContextContent == null) append("null") else append("\"" + esc(m.replyContextContent) + "\"")
+                append(",\"replyContextSenderUsername\":")
+                run {
+                    val ru = safeUsername(m.replyContextSenderUsername)
+                    if (ru == null) append("null") else append("\"" + esc(ru) + "\"")
+                }
+                append("}")
+                if (index != includedMessages.lastIndex) append(",")
+                append("\n")
+            }
+            append("]")
+        }
+
+        buildString {
+            append("=== CONTEXTO DE CONVERSACIÓN (SOLO PARA IA ONLINE) ===\n")
+            append("El usuario preguntó algo que parece referirse a una conversación existente.\n")
+            append("Seleccioné el chat más probable usando alias/nombre/username (búsqueda local).\n\n")
+            append("match.otherUserId=")
+            append(match.otherUserId)
+            append("\nmatch.displayName=")
+            append(match.displayName)
+            append("\nmatch.matchedBy=")
+            append(match.matchedBy)
+            append("\nmatch.score=")
+            append(match.score)
+            append("\nmessages.total=")
+            append(conversationMessages.size)
+            append("\nmessages.included=")
+            append(includedMessages.size)
+            append("\nmessages.truncated=")
+            append(truncated)
+            append("\n\n")
+            append("INSTRUCCIONES IMPORTANTES:\n")
+            append("- NO digas 'no puedo acceder' a chats: estos mensajes te los entrega la app.\n")
+            append("- Usa estos mensajes como fuente para responder preguntas sobre ese usuario/chat.\n")
+            append("- Si el match es ambiguo (score bajo), pide al usuario que confirme el contacto.\n")
+            append("- Para preguntas como 'mi relación con X': analiza reciprocidad, tono, frecuencia, cercanía y hechos concretos del historial.\n")
+            append("- No inventes mensajes; si algo no está en el historial provisto, dilo.\n")
+            append("- Si necesitas ubicar info: filtra por senderId/receiverId, ordena por createdAt, y usa replyContext* para hilos.\n\n")
+            append("messages=")
+            append(messagesJsonLines)
+            append("\n=== FIN CONTEXTO CONVERSACIÓN ===\n")
+        }
+    }
+
+    fun setLocalAlias(userId: String, aliasName: String?) {
+        val normalized = aliasName?.trim()?.takeIf { it.isNotBlank() }
+        try {
+            val existing = localUserAliasBox
+                .query(LocalUserAliasEntity_.userId.equal(userId))
+                .build()
+                .findFirst()
+
+            val entity = LocalUserAliasEntity.from(
+                userId = userId,
+                aliasName = normalized,
+                existingId = existing?.id ?: 0,
+                updatedAtMs = System.currentTimeMillis()
+            )
+            localUserAliasBox.put(entity)
+
+            // Invalidate in-memory display cache for notifications.
+            synchronized(senderDisplayNameCache) { senderDisplayNameCache.remove(userId) }
+        } catch (_: Exception) {
+            // no-op
+        }
+    }
+
+    private fun getLocalProfile(userId: String, preferLocalImages: Boolean): ProfileDTO? {
+        return try {
+            val entity = localUserProfileBox
+                .query(LocalUserProfileEntity_.userId.equal(userId))
+                .build()
+                .findFirst()
+            entity?.toDTO(preferLocalImages = preferLocalImages)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun upsertLocalProfile(profile: ProfileDTO, avatarLocalPath: String?, bannerLocalPath: String?) {
+        val userId = profile.id.toString()
+        val existing = localUserProfileBox
+            .query(LocalUserProfileEntity_.userId.equal(userId))
+            .build()
+            .findFirst()
+        val entity = LocalUserProfileEntity.fromDTO(
+            profile = profile,
+            avatarLocalPath = avatarLocalPath,
+            bannerLocalPath = bannerLocalPath,
+            existingId = existing?.id ?: 0,
+            updatedAtMs = System.currentTimeMillis()
+        )
+        localUserProfileBox.put(entity)
+    }
+
+    private fun profileMediaDir(): File {
+        val dir = File(appContext.filesDir, "profile_media")
+        if (!dir.exists()) dir.mkdirs()
+        return dir
+    }
+
+    private fun downloadUrlToFile(urlString: String, outFile: File): Boolean {
+        return try {
+            val url = URL(urlString)
+            val conn = (url.openConnection() as HttpURLConnection)
+            conn.connectTimeout = 10000
+            conn.readTimeout = 15000
+            conn.instanceFollowRedirects = true
+            conn.requestMethod = "GET"
+            conn.connect()
+
+            if (conn.responseCode !in 200..299) {
+                return false
+            }
+
+            conn.inputStream.use { input ->
+                FileOutputStream(outFile).use { output ->
+                    input.copyTo(output)
+                }
+            }
+            true
+        } catch (_: Exception) {
+            false
+        }
+    }
+
     /**
      * Obtiene el perfil del usuario actual.
      */
@@ -105,6 +641,15 @@ class SocialRepository private constructor(context: Context) {
         if (userId == null) {
             android.util.Log.e(TAG, "fetchCurrentUserProfile: User ID is null")
             return@withContext null
+        }
+
+        // Offline path: return last known profile from local DB.
+        if (!NetworkUtils.isInternetAvailable(appContext)) {
+            val cached = getLocalProfile(userId, preferLocalImages = true)
+            if (cached != null) {
+                _currentUserProfile.value = cached
+            }
+            return@withContext cached
         }
         
         try {
@@ -121,6 +666,46 @@ class SocialRepository private constructor(context: Context) {
                     val profile = parseProfile(jsonArray.getJSONObject(0))
                     android.util.Log.d(TAG, "fetchCurrentUserProfile: Parsed profile -> $profile")
                     _currentUserProfile.value = profile // Emitir actualización
+
+                    // Persist to local DB and download avatar/banner for offline display.
+                    val cachedEntity = localUserProfileBox
+                        .query(LocalUserProfileEntity_.userId.equal(userId))
+                        .build()
+                        .findFirst()
+
+                    val dir = profileMediaDir()
+                    var avatarLocalPath = cachedEntity?.avatarLocalPath
+                    var bannerLocalPath = cachedEntity?.bannerLocalPath
+
+                    val avatarRemote = profile.avatarUrl
+                    if (!avatarRemote.isNullOrBlank()) {
+                        val target = File(dir, "${userId}_avatar")
+                        val shouldDownload = !target.exists() || cachedEntity?.avatarUrlRemote != avatarRemote
+                        if (shouldDownload) {
+                            if (downloadUrlToFile(avatarRemote, target)) {
+                                avatarLocalPath = target.absolutePath
+                            }
+                        } else if (target.exists()) {
+                            avatarLocalPath = target.absolutePath
+                        }
+                    }
+
+                    val bannerRemote = profile.bannerUrl
+                    if (!bannerRemote.isNullOrBlank()) {
+                        val target = File(dir, "${userId}_banner")
+                        val shouldDownload = !target.exists() || cachedEntity?.bannerUrlRemote != bannerRemote
+                        if (shouldDownload) {
+                            if (downloadUrlToFile(bannerRemote, target)) {
+                                bannerLocalPath = target.absolutePath
+                            }
+                        } else if (target.exists()) {
+                            bannerLocalPath = target.absolutePath
+                        }
+                    }
+
+                    runCatching {
+                        upsertLocalProfile(profile, avatarLocalPath = avatarLocalPath, bannerLocalPath = bannerLocalPath)
+                    }
                     profile
                 } else {
                     android.util.Log.w(TAG, "fetchCurrentUserProfile: User not found in DB or empty array")
@@ -1078,16 +1663,138 @@ class SocialRepository private constructor(context: Context) {
         return 10_000 + bucket
     }
 
+    private fun safeNotificationIdForUser(userId: String): Int {
+        // Stable ID per sender so notifications get grouped/updated by user.
+        // Keep within a safe positive range.
+        val bucket = (userId.hashCode().absoluteValue % 100_000)
+        return 200_000 + bucket
+    }
+
+    private fun appendNotificationHistory(senderId: String, content: String, timestampMs: Long) {
+        val text = content.trim()
+        if (text.isBlank()) return
+
+        synchronized(notificationHistoryBySender) {
+            val deque = notificationHistoryBySender.getOrPut(senderId) { ArrayDeque() }
+            deque.addLast(NotificationMessageSnippet(text, timestampMs))
+            while (deque.size > 5) {
+                deque.removeFirst()
+            }
+        }
+    }
+
+    private fun getNotificationHistory(senderId: String): List<NotificationMessageSnippet> {
+        return synchronized(notificationHistoryBySender) {
+            notificationHistoryBySender[senderId]?.toList().orEmpty()
+        }
+    }
+
     private fun computeDisplayName(profile: ProfileDTO?): String {
         if (profile == null) return "Usuario"
 
-        val username = profile.username?.trim()
-        if (!username.isNullOrBlank()) return username
-
+        // Requisito UX: mostrar Nombre Apellido (nunca email/cuenta registrada).
+        // Si no hay nombre/apellido, caer a username.
         val fullName = listOfNotNull(profile.nombre?.trim(), profile.apellido?.trim())
             .filter { it.isNotBlank() }
             .joinToString(" ")
-        return if (fullName.isNotBlank()) fullName else "Usuario"
+            .trim()
+        return if (fullName.isNotBlank()) {
+            fullName
+        } else {
+            profile.username?.trim()?.takeIf { it.isNotBlank() } ?: "Usuario"
+        }
+    }
+
+    private fun computeDisplayNameWithAlias(userId: String, profile: ProfileDTO?): String {
+        val alias = getLocalAlias(userId)
+        if (!alias.isNullOrBlank()) return alias
+        return computeDisplayName(profile)
+    }
+
+    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+        val (height: Int, width: Int) = options.outHeight to options.outWidth
+        var inSampleSize = 1
+
+        if (height > reqHeight || width > reqWidth) {
+            var halfHeight = height / 2
+            var halfWidth = width / 2
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2
+            }
+        }
+
+        return inSampleSize.coerceAtLeast(1)
+    }
+
+    private fun decodeSampledBitmapFromFile(path: String, reqSizePx: Int): Bitmap? {
+        return try {
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(path, options)
+            if (options.outWidth <= 0 || options.outHeight <= 0) return null
+
+            options.inSampleSize = calculateInSampleSize(options, reqSizePx, reqSizePx)
+            options.inJustDecodeBounds = false
+            val decoded = BitmapFactory.decodeFile(path, options) ?: return null
+
+            // Ensure square-ish icon size for notifications
+            if (decoded.width == reqSizePx && decoded.height == reqSizePx) {
+                decoded
+            } else {
+                Bitmap.createScaledBitmap(decoded, reqSizePx, reqSizePx, true)
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun loadSenderAvatarBitmapForNotification(senderId: String, profile: ProfileDTO?): Bitmap? {
+        // 64-128dp is typical; use 128px as a safe default for mdpi+.
+        val reqPx = 128
+
+        // Prefer local ObjectBox cached avatar path if present.
+        val localPath = try {
+            localUserProfileBox
+                .query(LocalUserProfileEntity_.userId.equal(senderId))
+                .build()
+                .findFirst()
+                ?.avatarLocalPath
+        } catch (_: Exception) {
+            null
+        }
+
+        if (!localPath.isNullOrBlank()) {
+            val file = File(localPath)
+            if (file.exists()) {
+                decodeSampledBitmapFromFile(file.absolutePath, reqPx)?.let { return it }
+            }
+        }
+
+        // Next: use profile.avatarUrl (may be remote or file://)
+        val model = profile?.avatarUrl?.trim()
+        if (model.isNullOrBlank()) return null
+
+        if (model.startsWith("file://")) {
+            val filePath = model.removePrefix("file://")
+            if (filePath.isNotBlank()) {
+                val file = File(filePath)
+                if (file.exists()) {
+                    return decodeSampledBitmapFromFile(file.absolutePath, reqPx)
+                }
+            }
+            return null
+        }
+
+        // Remote URL: cache to internal storage (best-effort) then decode.
+        return try {
+            val dir = profileMediaDir()
+            val target = File(dir, "${senderId}_avatar")
+            if (!target.exists()) {
+                downloadUrlToFile(model, target)
+            }
+            if (target.exists()) decodeSampledBitmapFromFile(target.absolutePath, reqPx) else null
+        } catch (_: Exception) {
+            null
+        }
     }
 
     /**
@@ -1111,20 +1818,28 @@ class SocialRepository private constructor(context: Context) {
             // Resolver nombre del remitente (con cache simple en memoria)
             val senderIdStr = message.senderId.toString()
             val cachedName = synchronized(senderDisplayNameCache) { senderDisplayNameCache[senderIdStr] }
+
+            val senderProfile = try {
+                // Prefer offline/local profile first (may include local avatar path)
+                getLocalProfile(senderIdStr, preferLocalImages = true)
+                    ?: fetchUserProfileById(message.senderId)
+            } catch (_: Exception) {
+                null
+            }
+
             val senderName = if (!cachedName.isNullOrBlank()) {
                 cachedName
             } else {
-                val profile = try {
-                    fetchUserProfileById(message.senderId)
-                } catch (_: Exception) {
-                    null
-                }
-                val computed = computeDisplayName(profile)
+                val computed = computeDisplayNameWithAlias(senderIdStr, senderProfile)
                 synchronized(senderDisplayNameCache) { senderDisplayNameCache[senderIdStr] = computed }
                 computed
             }
 
+            val senderAvatarBitmap = loadSenderAvatarBitmapForNotification(senderIdStr, senderProfile)
+
             val content = message.content.ifBlank { "Nuevo mensaje" }
+            val nowMs = System.currentTimeMillis()
+            appendNotificationHistory(senderIdStr, content, nowMs)
 
             // Intent para abrir el chat cuando se toca la notificación
             val intent = Intent(appContext, io.orabel.orabelandroid.ui.screens.search.SearchActivity::class.java).apply {
@@ -1132,30 +1847,53 @@ class SocialRepository private constructor(context: Context) {
                 putExtra("open_chat_with_user_id", senderIdStr)
             }
 
+            val notificationId = safeNotificationIdForUser(senderIdStr)
+
             val pendingIntent = PendingIntent.getActivity(
                 appContext,
-                safeNotificationId(message.id),
+                notificationId,
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
 
-            val notification = NotificationCompat.Builder(appContext, "messages_channel")
+            val builder = NotificationCompat.Builder(appContext, "messages_channel")
                 .setSmallIcon(io.orabel.orabelandroid.R.drawable.ic_message)
                 .setContentTitle(senderName)
-                .setContentText(content)
-                .setStyle(
-                    NotificationCompat.BigTextStyle()
-                        .bigText(content)
-                        .setBigContentTitle(senderName)
-                )
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .setCategory(NotificationCompat.CATEGORY_MESSAGE)
+
+            if (senderAvatarBitmap != null) {
+                builder.setLargeIcon(senderAvatarBitmap)
+            }
+
+            // Rich messaging preview: show last N messages in this conversation.
+            val senderPerson = Person.Builder()
+                .setName(senderName)
+                .setIcon(senderAvatarBitmap?.let { IconCompat.createWithBitmap(it) })
                 .build()
 
+            val history = getNotificationHistory(senderIdStr)
+            val messagingStyle = NotificationCompat.MessagingStyle(senderPerson)
+                .setConversationTitle(senderName)
+
+            for (snippet in history) {
+                messagingStyle.addMessage(snippet.content, snippet.timestampMs, senderPerson)
+            }
+
+            builder.setStyle(messagingStyle)
+
+            val count = history.size
+            builder.setNumber(count)
+            builder.setContentText(
+                if (count > 1) "$count mensajes nuevos" else content
+            )
+
+            val notification = builder.build()
+
             try {
-                NotificationManagerCompat.from(appContext).notify(safeNotificationId(message.id), notification)
+                NotificationManagerCompat.from(appContext).notify(notificationId, notification)
                 Log.d(TAG, "🔔 Notification shown (foreground) from $senderName")
             } catch (e: SecurityException) {
                 Log.e(TAG, "Permission denied to show notification", e)
@@ -1302,7 +2040,10 @@ class SocialRepository private constructor(context: Context) {
     data class ConversationItem(
         val otherUserId: String,
         val otherUsername: String?,
+        val otherNombre: String?,
+        val otherApellido: String?,
         val otherUserFullName: String?,
+        val otherUserAlias: String?,
         val otherUserAvatarUrl: String?,
         val lastMessage: String,
         val lastMessageDate: Date,
@@ -1343,24 +2084,51 @@ class SocialRepository private constructor(context: Context) {
                 
                 // El nombre del otro usuario puede venir de cualquier mensaje donde él es el sender
                 val messageFromOther = messages.find { it.senderId == otherUserId }
-                val otherUsername = messageFromOther?.senderUsername
-                val otherAvatarUrl = messageFromOther?.senderAvatarUrl
-                
-                // Construir nombre completo si está disponible
-                val otherUserFullName = when {
-                    messageFromOther != null -> {
-                        val parts = listOfNotNull(
-                            messageFromOther.senderUsername?.takeIf { it.isNotEmpty() }
-                        )
-                        if (parts.isNotEmpty()) parts.joinToString(" ") else null
+                var otherUsername = messageFromOther?.senderUsername
+                var otherAvatarUrl = messageFromOther?.senderAvatarUrl
+                var otherNombre: String? = null
+                var otherApellido: String? = null
+
+                val otherAlias = getLocalAlias(otherUserId)
+
+                // Enriquecer con el perfil real (nombre + apellido) cuando hay internet.
+                // Si no hay internet, intentamos leer de ObjectBox si existiera.
+                val enrichedProfile: ProfileDTO? = try {
+                    if (io.orabel.orabelandroid.utils.NetworkUtils.isInternetAvailable(appContext)) {
+                        fetchUserProfileById(UUID.fromString(otherUserId))
+                    } else {
+                        localUserProfileBox
+                            .query(LocalUserProfileEntity_.userId.equal(otherUserId))
+                            .build()
+                            .findFirst()
+                            ?.withRemoteImages()
                     }
-                    else -> null
+                } catch (_: Exception) {
+                    null
                 }
+
+                if (enrichedProfile != null) {
+                    otherUsername = enrichedProfile.username ?: otherUsername
+                    otherAvatarUrl = enrichedProfile.avatarUrl ?: otherAvatarUrl
+                    otherNombre = enrichedProfile.nombre
+                    otherApellido = enrichedProfile.apellido
+
+                    // Cache básico en local DB (sin descargar media extra).
+                    runCatching { upsertLocalProfile(enrichedProfile, avatarLocalPath = null, bannerLocalPath = null) }
+                }
+
+                val otherUserFullName = listOfNotNull(
+                    otherNombre?.takeIf { it.isNotBlank() },
+                    otherApellido?.takeIf { it.isNotBlank() }
+                ).joinToString(" ").trim().ifBlank { null }
                 
                 ConversationItem(
                     otherUserId = otherUserId,
                     otherUsername = otherUsername,
+                    otherNombre = otherNombre,
+                    otherApellido = otherApellido,
                     otherUserFullName = otherUserFullName ?: otherUsername ?: "Usuario",
+                    otherUserAlias = otherAlias,
                     otherUserAvatarUrl = otherAvatarUrl,
                     lastMessage = lastMessage.content,
                     lastMessageDate = Date(lastMessage.createdAt),
