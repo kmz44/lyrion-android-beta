@@ -28,6 +28,7 @@ jobs:
             index.html
             privacy.html
             .nojekyll
+            CNAME
           sparse-checkout-cone-mode: false
 
       - name: Setup Pages
